@@ -1,0 +1,45 @@
+'use client';
+
+import { Button } from "@/components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Settings, LogOut, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+export const UserDropdown = () => {
+    const router = useRouter();
+
+    const handleLogout = () => {
+        console.log("Logging out...");
+        router.push("/login");
+    };
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button className="hidden md:flex rounded-full h-10 w-10 bg-green-600 hover:bg-green-700">
+                    <Settings className="h-4 w-4 text-white" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <div className="flex flex-col">
+                        <span className="font-medium">Ratu</span>
+                        <span className="text-xs text-muted-foreground">Petugas Apotik</span>
+                    </div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log Out
+                </DropdownMenuItem>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    );
+};

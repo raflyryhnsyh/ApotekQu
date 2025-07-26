@@ -1,8 +1,11 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useAuth } from '@/hooks/use-auth';
+import { useEffect, useState } from 'react';
 
-export default function APAPage() {
+export default function PegawaiPage() {
+    const { user, profile, error, signOut } = useAuth();
+
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -27,9 +30,23 @@ export default function APAPage() {
         );
     }
 
+    if (error) {
+        return <div>Error: {error}</div>;
+    }
+
+    if (!user) {
+        return <div>Please login</div>;
+    }
+
+    if (!profile) {
+        return <div>Loading profile...</div>;
+    }
+
     return (
-        <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] bg-gray-600">
-            <h1>APA Page!</h1>
+        <div className="min-h-screen items-center justify-center flex flex-col">
+            <p>Welcome {profile.full_name}</p>
+            <p>Role: {profile.role}</p>
+            <button onClick={signOut}>Logout</button>
         </div>
     );
 }

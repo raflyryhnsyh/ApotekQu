@@ -8,16 +8,12 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/use-auth";
 import { Settings, LogOut, User } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 export const UserDropdown = () => {
-    const router = useRouter();
 
-    const handleLogout = () => {
-        console.log("Logging out...");
-        router.push("/login");
-    };
+    const { profile, signOut } = useAuth();
 
     return (
         <DropdownMenu>
@@ -30,12 +26,12 @@ export const UserDropdown = () => {
                 <DropdownMenuItem className="cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
                     <div className="flex flex-col">
-                        <span className="font-medium">Ratu</span>
-                        <span className="text-xs text-muted-foreground">Petugas Apotik</span>
+                        <span className="font-medium">{profile?.full_name || "Petugas"}</span>
+                        <span className="text-xs text-muted-foreground">{profile?.role || "Petugas"} Apotek</span>
                     </div>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
+                <DropdownMenuItem onClick={signOut} className="cursor-pointer text-red-600 focus:text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />
                     Log Out
                 </DropdownMenuItem>

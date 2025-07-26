@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export default function APAPage() {
+export default function InformasiPOPage() {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -29,7 +29,7 @@ export default function APAPage() {
 
     return (
         <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] bg-gray-600">
-            <h1>APA Page!</h1>
+            <h1>Informasi PO Page!</h1>
         </div>
     );
 }

@@ -1,3 +1,5 @@
+'use client';
+
 import {
     NavigationMenu,
     NavigationMenuItem,
@@ -17,18 +19,43 @@ import { NavigationMenuProps } from "@radix-ui/react-navigation-menu";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { ChevronDown } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
-export const NavMenu = (props: NavigationMenuProps) => (
+// Navbar untuk APA
+const APANavMenu = (props: NavigationMenuProps) => (
     <NavigationMenu {...props}>
         <NavigationMenuList className="gap-6 space-x-0 data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-start">
             <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                    <Link href="/" className="font-medium">Home</Link>
+                    <Link href="/APA" className="font-medium">Home</Link>
                 </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                    <Link href="/obat-master" className="font-medium">Obat Master</Link>
+                    <Link href="/APA/kelola-pegawai" className="font-medium">Kelola Pegawai</Link>
+                </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                    <Link href="/APA/laporan" className="font-medium">Laporan</Link>
+                </NavigationMenuLink>
+            </NavigationMenuItem>
+        </NavigationMenuList>
+    </NavigationMenu>
+);
+
+// Navbar untuk Pegawai
+const PegawaiNavMenu = (props: NavigationMenuProps) => (
+    <NavigationMenu {...props}>
+        <NavigationMenuList className="gap-6 space-x-0 data-[orientation=vertical]:flex-col data-[orientation=vertical]:items-start">
+            <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                    <Link href="/pegawai" className="font-medium">Home</Link>
+                </NavigationMenuLink>
+            </NavigationMenuItem>
+            <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                    <Link href="/pegawai/obat-master" className="font-medium">Obat Master</Link>
                 </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
@@ -45,7 +72,7 @@ export const NavMenu = (props: NavigationMenuProps) => (
                     <DropdownMenuContent align="start" className="w-48">
                         <DropdownMenuItem asChild>
                             <Link
-                                href="/pengadaan/buat-po"
+                                href="/pegawai/pengadaan/buat-po"
                                 className="w-full cursor-pointer"
                             >
                                 Buat PO
@@ -53,7 +80,7 @@ export const NavMenu = (props: NavigationMenuProps) => (
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                             <Link
-                                href="/pengadaan/informasi-po"
+                                href="/pegawai/pengadaan/informasi-po"
                                 className="w-full cursor-pointer"
                             >
                                 Informasi PO
@@ -64,14 +91,34 @@ export const NavMenu = (props: NavigationMenuProps) => (
             </NavigationMenuItem>
             <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                    <Link href="/pengelolaan" className="font-medium">Pengelolaan</Link>
+                    <Link href="/pegawai/pengelolaan" className="font-medium">Pengelolaan</Link>
                 </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                    <Link href="/penjualan" className="font-medium">Penjualan</Link>
+                    <Link href="/pegawai/penjualan" className="font-medium">Penjualan</Link>
                 </NavigationMenuLink>
             </NavigationMenuItem>
         </NavigationMenuList>
     </NavigationMenu>
 );
+
+// Main component yang menentukan navbar berdasarkan role
+export const NavMenu = (props: NavigationMenuProps) => {
+    const { user, profile, loading } = useAuth();
+
+    // Jika masih loading atau tidak ada user, tampilkan default navbar
+    if (loading || !user || !profile) {
+        return null;
+    }
+
+    // Render navbar berdasarkan role
+    switch (profile.role) {
+        case 'APA':
+            return <APANavMenu {...props} />;
+        case 'Pegawai':
+            return <PegawaiNavMenu {...props} />;
+        default:
+            return null;
+    }
+};

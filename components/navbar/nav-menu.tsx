@@ -32,12 +32,12 @@ const APANavMenu = (props: NavigationMenuProps) => (
             </NavigationMenuItem>
             <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                    <Link href="/APA/kelola-pegawai" className="font-medium">Kelola Pegawai</Link>
+                    <Link href="/APA" className="font-medium">Kelola Pegawai</Link>
                 </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                    <Link href="/APA/laporan" className="font-medium">Laporan</Link>
+                    <Link href="/APA/laporan-obat" className="font-medium">Laporan</Link>
                 </NavigationMenuLink>
             </NavigationMenuItem>
         </NavigationMenuList>

@@ -10,7 +10,7 @@ export const ConditionalNavbar = () => {
     const showNavbarRoutes = [
         // APA routes
         '/APA',
-        '/APA/kelola-pegawai',
+        '/APA/laporan-obat',
         '/APA/laporan',
         // Pegawai routes
         '/pegawai',

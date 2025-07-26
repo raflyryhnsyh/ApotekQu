@@ -1,10 +1,14 @@
+"use client";
+
 import { useEffect, useState } from "react";
-import { Edit2, Trash2, Plus } from "lucide-react";
+import { Edit2, Trash2, Plus, X } from "lucide-react";
 
 export default function APAPage() {
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);
+    const [deleteId, setDeleteId] = useState<number | null>(null);
+    const [errors, setErrors] = useState<{ nama?: string; username?: string; password?: string }>({});
     const [pegawaiData, setPegawaiData] = useState([
         {
             id: 12345,
@@ -70,7 +74,13 @@ export default function APAPage() {
             tanggal_dibuat: "2023-01-01"
         }
     ]);
-    const [currentPegawai, setCurrentPegawai] = useState({
+    const [currentPegawai, setCurrentPegawai] = useState<{
+        id: number | null;
+        nama: string;
+        username: string;
+        password: string;
+        tanggal_dibuat: string;
+    }>({
         id: null,
         nama: "",
         username: "",
@@ -89,8 +99,38 @@ export default function APAPage() {
         initializePage();
     }, []);
 
-    const handleAddPegawai = () => {
-        setEditMode(false);
+    const validateForm = () => {
+        const newErrors: { nama?: string; username?: string; password?: string } = {};
+        
+        if (!currentPegawai.nama.trim()) {
+            newErrors.nama = "Nama tidak boleh kosong";
+        }
+        
+        if (!currentPegawai.username.trim()) {
+            newErrors.username = "Username tidak boleh kosong";
+        } else if (currentPegawai.username.length < 3) {
+            newErrors.username = "Username minimal 3 karakter";
+        } else {
+            // Check if username already exists (exclude current user when editing)
+            const existingUser = pegawaiData.find(p => 
+                p.username === currentPegawai.username && p.id !== currentPegawai.id
+            );
+            if (existingUser) {
+                newErrors.username = "Username sudah digunakan";
+            }
+        }
+        
+        if (!currentPegawai.password.trim()) {
+            newErrors.password = "Password tidak boleh kosong";
+        } else if (currentPegawai.password.length < 4) {
+            newErrors.password = "Password minimal 4 karakter";
+        }
+        
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+    const resetForm = () => {
         setCurrentPegawai({
             id: null,
             nama: "",
@@ -98,20 +138,41 @@ export default function APAPage() {
             password: "",
             tanggal_dibuat: ""
         });
+        setErrors({});
+    };
+
+    const handleAddPegawai = () => {
+        setEditMode(false);
+        resetForm();
         setShowModal(true);
     };
 
-    const handleEditPegawai = (pegawai) => {
+    type Pegawai = {
+        id: number;
+        nama: string;
+        username: string;
+        password: string;
+        tanggal_dibuat: string;
+    };
+
+    const handleEditPegawai = (pegawai: Pegawai) => {
         setEditMode(true);
-        setCurrentPegawai(pegawai);
+        setCurrentPegawai({ ...pegawai });
+        setErrors({});
         setShowModal(true);
     };
 
     const handleSavePegawai = () => {
+        if (!validateForm()) {
+            return;
+        }
+
         if (editMode) {
             // Update existing pegawai
             setPegawaiData(prev => prev.map(p => 
-                p.id === currentPegawai.id ? currentPegawai : p
+                p.id === currentPegawai.id
+                    ? { ...currentPegawai, id: p.id } // Ensure id is a number
+                    : p
             ));
         } else {
             // Add new pegawai
@@ -123,11 +184,25 @@ export default function APAPage() {
             setPegawaiData(prev => [...prev, newPegawai]);
         }
         setShowModal(false);
+        resetForm();
     };
 
-    const handleDeletePegawai = (id) => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus pegawai ini?')) {
-            setPegawaiData(prev => prev.filter(p => p.id !== id));
+
+    const handleDeletePegawai = (id: number) => {
+        setDeleteId(id);
+    };
+
+
+    const handleCloseModal = () => {
+        setShowModal(false);
+        resetForm();
+    };
+
+    const handleInputChange = (field: keyof typeof currentPegawai, value: string) => {
+        setCurrentPegawai(prev => ({ ...prev, [field]: value }));
+        // Clear error when user starts typing
+        if (errors[field as keyof typeof errors]) {
+            setErrors(prev => ({ ...prev, [field]: "" }));
         }
     };
 
@@ -170,91 +245,149 @@ export default function APAPage() {
                         </tr>
                     </thead>
                     <tbody className="bg-white">
-                        {pegawaiData.map((pegawai, index) => (
-                            <tr key={pegawai.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors`}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pegawai.id}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pegawai.nama}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pegawai.username}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pegawai.password}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pegawai.tanggal_dibuat}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <div className="flex space-x-2">
-                                        <button
-                                            onClick={() => handleEditPegawai(pegawai)}
-                                            className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded transition-colors"
-                                            title="Edit"
-                                        >
-                                            <Edit2 size={16} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeletePegawai(pegawai.id)}
-                                            className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded transition-colors"
-                                            title="Delete"
-                                        >
-                                            <Trash2 size={16} />
-                                        </button>
-                                    </div>
+                        {pegawaiData.length === 0 ? (
+                            <tr>
+                                <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                                    Tidak ada data pegawai
                                 </td>
                             </tr>
-                        ))}
+                        ) : (
+                            pegawaiData.map((pegawai, index) => (
+                                <tr key={pegawai.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-gray-100 transition-colors`}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pegawai.id}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pegawai.nama}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pegawai.username}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pegawai.password}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{pegawai.tanggal_dibuat}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={() => handleEditPegawai(pegawai)}
+                                                className="text-blue-600 hover:text-blue-800 p-2 hover:bg-blue-50 rounded transition-colors"
+                                                title="Edit"
+                                            >
+                                                <Edit2 size={16} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeletePegawai(pegawai.id)}
+                                                className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded transition-colors"
+                                                title="Delete"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
                     </tbody>
                 </table>
             </div>
 
+            {deleteId !== null && (
+                <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
+                        <div className="p-6 text-center">
+                            <h3 className="text-md font-semibold text-gray-900">Hapus Pegawai?</h3>
+                            <p className="mt-2 text-gray-600">Apakah Anda yakin ingin menghapus pegawai ini?</p>
+                        </div>
+                        <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
+                            <button
+                                onClick={() => setDeleteId(null)}
+                                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setPegawaiData(prev => prev.filter(p => p.id !== deleteId));
+                                    setDeleteId(null);
+                                }}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
+                            >
+                                Hapus
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
             {/* Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
                         <div className="flex justify-between items-center p-6 border-b border-gray-200">
                             <h3 className="text-lg font-semibold text-gray-900">
                                 {editMode ? 'Edit Pegawai' : 'Tambah Pegawai'}
                             </h3>
                             <button
-                                onClick={() => setShowModal(false)}
-                                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded"
+                                onClick={handleCloseModal}
+                                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded transition-colors"
                             >
-                                ✕
+                                <X size={20} />
                             </button>
                         </div>
 
                         <div className="p-6 space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nama</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Nama <span className="text-red-500">*</span>
+                                </label>
                                 <input
                                     type="text"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                                        errors.nama ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                     value={currentPegawai.nama}
-                                    onChange={(e) => setCurrentPegawai({...currentPegawai, nama: e.target.value})}
+                                    onChange={(e) => handleInputChange('nama', e.target.value)}
                                     placeholder="Masukkan nama pegawai"
                                 />
+                                {errors.nama && (
+                                    <p className="mt-1 text-sm text-red-500">{errors.nama}</p>
+                                )}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Username <span className="text-red-500">*</span>
+                                </label>
                                 <input
                                     type="text"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                                        errors.username ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                     value={currentPegawai.username}
-                                    onChange={(e) => setCurrentPegawai({...currentPegawai, username: e.target.value})}
+                                    onChange={(e) => handleInputChange('username', e.target.value)}
                                     placeholder="Masukkan username"
                                 />
+                                {errors.username && (
+                                    <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+                                )}
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Password <span className="text-red-500">*</span>
+                                </label>
                                 <input
                                     type="password"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+                                        errors.password ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                     value={currentPegawai.password}
-                                    onChange={(e) => setCurrentPegawai({...currentPegawai, password: e.target.value})}
+                                    onChange={(e) => handleInputChange('password', e.target.value)}
                                     placeholder="Masukkan password"
                                 />
+                                {errors.password && (
+                                    <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                                )}
                             </div>
                         </div>
 
                         <div className="flex justify-end space-x-3 p-6 border-t border-gray-200">
                             <button
-                                onClick={() => setShowModal(false)}
+                                onClick={handleCloseModal}
                                 className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
                             >
                                 Batal

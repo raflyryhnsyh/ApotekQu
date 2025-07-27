@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Edit2, Trash2, Plus, X } from "lucide-react";
 
-export default function APAPage() {
+export default function KelolaPegawaiPage() {
     const [loading, setLoading] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [editMode, setEditMode] = useState(false);

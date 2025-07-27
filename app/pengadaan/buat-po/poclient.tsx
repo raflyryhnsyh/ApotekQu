@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent, useEffect } from "react";
-import { useCartStore } from "@/lib/store/usecartstore";
+import { useCartStore } from "./usecartstore";
 import ObatCard from "@/components/pengadaan-katalog/obatcard";
 import { CartItemCard } from "@/components/pengadaan-cart/cartitem";
 import { ConfirmationDialog } from "@/components/ui/confirmationdialog";
@@ -57,6 +57,15 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
         const supabase = createClient();
 
         try {
+            // const { data: { user } } = await supabase.auth.getUser();
+            const user = "f7e7e2ad-ce8a-49a7-8813-384310284d86"
+            if (!user) {
+                // Jika tidak ada user yang login, hentikan proses
+                alert("Sesi tidak ditemukan. Harap login kembali.");
+                setIsSubmitting(false);
+                return;
+            }
+
             await Promise.all(
                 Object.values(groupedBySupplier).map(async (items) => {
                     const supplierId = items[0].id_supplier;
@@ -64,7 +73,8 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
 
                     const { data: poData, error: poError } = await supabase
                         .from('purchase_order')
-                        .insert({ id_supplier: supplierId, total_bayar: totalBayarGroup, status: 'diproses', dibuat_pada: new Date().toISOString() })
+                        .insert({ id_supplier: supplierId, total_bayar: totalBayarGroup, status: 'diproses', dibuat_pada: new Date().toISOString(), // dibuat_oleh: user.id
+                        dibuat_oleh: user})
                         .select('id').single();
 
                     if (poError) throw poError;

@@ -13,10 +13,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning={true}>
       <body>
         <NavbarPage />
-        <main className="mt-16">
+        <main className="mt-16 p-8">
           {children}
         </main>
       </body>

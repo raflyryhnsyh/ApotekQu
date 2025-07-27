@@ -1,5 +1,8 @@
 "use client";
 
+import { DataTableDemo } from '@/components/obat-master/data-table';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function ObatMasterPage() {
@@ -28,8 +31,10 @@ export default function ObatMasterPage() {
     }
 
     return (
-        <div className="flex flex-col items-center justify-center h-[calc(100vh-4rem)] bg-gray-600">
-            <h1>Obat Master Page!</h1>
+        <div className="flex flex-col min-h-screen">
+            <div className="container mx-auto px-8 py-16">
+                <DataTableDemo />
+            </div>
         </div>
     );
 }

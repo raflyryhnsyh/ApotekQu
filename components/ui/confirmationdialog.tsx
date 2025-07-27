@@ -7,7 +7,7 @@ interface ConfirmationDialogProps {
     onClose: () => void;
     onConfirm: () => void;
     title: string;
-    children: React.ReactNode; // Menggunakan children agar deskripsi lebih fleksibel
+    children: React.ReactNode;
 }
 
 export function ConfirmationDialog({
@@ -18,36 +18,39 @@ export function ConfirmationDialog({
     children,
 }: ConfirmationDialogProps) {
     if (!isOpen) {
-        return null; // Jika tidak terbuka, jangan render apapun
+        return null;
     }
 
     return (
-        // Overlay (latar belakang gelap)
+        // Latar belakang overlay
         <div 
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-            onClick={onClose} // Menutup dialog saat overlay diklik
+            onClick={onClose}
         >
             {/* Konten Dialog */}
             <div 
-                className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg"
-                onClick={(e) => e.stopPropagation()} // Mencegah dialog tertutup saat di dalam dialog diklik
+                className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg"
+                onClick={(e) => e.stopPropagation()}
             >
-                <h2 className="text-xl font-bold text-gray-800">{title}</h2>
-                <div className="mt-2 text-sm text-gray-600">
+                {/* Judul (rata kiri secara default) */}
+                <h2 className="text-lg font-bold text-gray-900 break-words  text-left">{title}</h2>
+                
+                {/* Deskripsi (rata kiri secara default) */}
+                <div className="mt-2 text-sm text-gray-600 break-words whitespace-normal  text-left">
                     {children}
                 </div>
                 
-                {/* Area Tombol */}
-                <div className="mt-6 flex justify-end gap-4">
+                {/* Area Tombol Aksi (didorong ke kanan) */}
+                <div className="mt-6 flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="rounded-lg bg-gray-100 px-5 py-2 text-sm font-medium text-gray-800 transition hover:bg-gray-200"
+                        className="rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-800 transition hover:bg-gray-200"
                     >
                         Batal
                     </button>
                     <button
                         onClick={onConfirm}
-                        className="rounded-lg bg-green-100 px-5 py-2 text-sm font-medium text-green-800 transition hover:bg-green-200"
+                        className="rounded-lg bg-green-100 px-5 py-2.5 text-sm font-medium text-green-800 transition hover:bg-green-200"
                     >
                         Yakin
                     </button>

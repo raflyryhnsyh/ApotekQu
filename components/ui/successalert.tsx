@@ -14,7 +14,7 @@ export function SuccessToast({ isOpen, onClose, children }: SuccessToastProps) {
         if (isOpen) {
             const timer = setTimeout(() => {
                 onClose();
-            }, 3000); // 3000 milidetik = 3 detik
+            }, 4000); // 3000 milidetik = 3 detik
 
             // Membersihkan timer jika komponen di-unmount atau ditutup manual
             return () => clearTimeout(timer);

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { QuantityButton } from "./quantitybutton";
-import { useCartStore } from "@/lib/store/usecartstore";
+import { useCartStore } from "@/app/pengadaan/buat-po/usecartstore";
 
 interface CartItemCardProps {
     id: string;

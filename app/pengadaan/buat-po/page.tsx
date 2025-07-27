@@ -1,4 +1,4 @@
-import PengadaanClient from "./poclient"
+import PengadaanClient from "@/app/pegawai/pengadaan/buat-po/poclient";
 import { createClient } from "@/utils/supabase/client";
 
 interface KatalogItem {

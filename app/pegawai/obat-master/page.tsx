@@ -32,7 +32,7 @@ export default function ObatMasterPage() {
 
     return (
         <div className="flex flex-col min-h-screen">
-            <div className="container mx-auto px-8 py-16">
+            <div className="container">
                 <DataTableDemo />
             </div>
         </div>

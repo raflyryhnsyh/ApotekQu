@@ -242,10 +242,10 @@ export function DataTableDemo() {
     })
 
     return (
-        <div className="w-full space-y-4 mt-8">
+        <div className="w-full space-y-4">
             {/* Header dengan tombol Tambah Obat */}
             <div className="flex items-center justify-between">
-                <h1 className="text-4xl font-bold mb-4">Obat Master</h1>
+                <h1 className="text-3xl font-bold mb-4">Obat Master</h1>
                 <DataAdd onAdd={handleAdd} />
             </div>
 

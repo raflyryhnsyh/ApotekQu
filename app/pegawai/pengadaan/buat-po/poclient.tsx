@@ -73,8 +73,10 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
 
                     const { data: poData, error: poError } = await supabase
                         .from('purchase_order')
-                        .insert({ id_supplier: supplierId, total_bayar: totalBayarGroup, status: 'diproses', dibuat_pada: new Date().toISOString(), // dibuat_oleh: user.id
-                        dibuat_oleh: user})
+                        .insert({
+                            id_supplier: supplierId, total_bayar: totalBayarGroup, status: 'diproses', dibuat_pada: new Date().toISOString(), // dibuat_oleh: user.id
+                            dibuat_oleh: user
+                        })
                         .select('id').single();
 
                     if (poError) throw poError;

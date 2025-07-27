@@ -211,7 +211,7 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
                         <button
                             type="submit"
                             disabled={isSubmitting}
-                            className="mt-2 w-full rounded-xl bg-green-100 py-3 text-sm font-semibold text-black shadow-sm transition hover:bg-green-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="mt-2 w-full rounded-xl bg-green-100 py-3 text-sm font-semibold text-black shadow-sm transition hover:bg-green-200 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? 'Menyimpan...' : 'Ajukan Pengadaan'}
                         </button>

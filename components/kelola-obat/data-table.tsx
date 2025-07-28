@@ -26,6 +26,8 @@ import {
 import { DataAdd } from "./data-add"
 import { DataEdit } from "./data-edit"
 import { DataDelete } from "./data-delete"
+import { ExpiredMedicine, ExpiredNotification } from "./pengingat-expired"
+import { Badge } from "../ui/badge"
 
 export type PengelolaanObat = {
     noBatch: string
@@ -36,13 +38,14 @@ export type PengelolaanObat = {
     supplier: string
 }
 
+// Data dengan beberapa obat yang akan expired untuk testing
 const initialData: PengelolaanObat[] = [
     {
         noBatch: "12345",
         nama: "Aspirin",
         totalStok: 100,
         satuan: "Tablets",
-        tanggalExpired: "2024-12-31",
+        tanggalExpired: "2025-08-15", // Akan expired dalam 18 hari
         supplier: "ABC Pharma"
     },
     {
@@ -50,7 +53,7 @@ const initialData: PengelolaanObat[] = [
         nama: "Ibuprofen",
         totalStok: 12,
         satuan: "Capsules",
-        tanggalExpired: "2024-12-31",
+        tanggalExpired: "2025-07-30", // Akan expired dalam 2 hari
         supplier: "ABC Pharma"
     },
     {
@@ -58,7 +61,7 @@ const initialData: PengelolaanObat[] = [
         nama: "Paracetamol",
         totalStok: 7,
         satuan: "Tablets",
-        tanggalExpired: "2024-12-31",
+        tanggalExpired: "2025-08-25", // Sudah expired
         supplier: "ABC Pharma"
     },
     {
@@ -66,7 +69,7 @@ const initialData: PengelolaanObat[] = [
         nama: "Amoxicillin",
         totalStok: 12,
         satuan: "Capsules",
-        tanggalExpired: "2024-12-31",
+        tanggalExpired: "2025-12-31",
         supplier: "ABC Pharma"
     },
     {
@@ -74,7 +77,7 @@ const initialData: PengelolaanObat[] = [
         nama: "Loratadine",
         totalStok: 34,
         satuan: "Tablets",
-        tanggalExpired: "2024-12-31",
+        tanggalExpired: "2025-12-31",
         supplier: "ABC Pharma"
     },
     {
@@ -82,7 +85,7 @@ const initialData: PengelolaanObat[] = [
         nama: "Omeprazole",
         totalStok: 56,
         satuan: "Capsules",
-        tanggalExpired: "2024-12-31",
+        tanggalExpired: "2025-12-31",
         supplier: "ABC Pharma"
     },
     {
@@ -90,7 +93,7 @@ const initialData: PengelolaanObat[] = [
         nama: "Simvastatin",
         totalStok: 76,
         satuan: "Tablets",
-        tanggalExpired: "2024-12-31",
+        tanggalExpired: "2025-12-31",
         supplier: "ABC Pharma"
     },
     {
@@ -98,7 +101,7 @@ const initialData: PengelolaanObat[] = [
         nama: "Metformin",
         totalStok: 3,
         satuan: "Tablets",
-        tanggalExpired: "2024-12-31",
+        tanggalExpired: "2025-12-31",
         supplier: "ABC Pharma"
     },
     {
@@ -106,7 +109,7 @@ const initialData: PengelolaanObat[] = [
         nama: "Ciprofloxacin",
         totalStok: 123,
         satuan: "Tablets",
-        tanggalExpired: "2024-12-31",
+        tanggalExpired: "2025-12-31",
         supplier: "ABC Pharma"
     },
     {
@@ -114,7 +117,7 @@ const initialData: PengelolaanObat[] = [
         nama: "Albuterol",
         totalStok: 7,
         satuan: "Inhaler",
-        tanggalExpired: "2024-12-31",
+        tanggalExpired: "2025-12-31",
         supplier: "ABC Pharma"
     }
 ]
@@ -125,6 +128,50 @@ export function DataTableDemo() {
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = React.useState({})
+    const [showExpiredModal, setShowExpiredModal] = React.useState(false)
+
+    // Function to calculate days until expiry
+    const getDaysUntilExpiry = (expiryDate: string) => {
+        const today = new Date()
+        const expiry = new Date(expiryDate)
+        const diffTime = expiry.getTime() - today.getTime()
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+        return diffDays
+    }
+
+    // Function to check if medicine expires within 30 days
+    const isExpiringWithin30Days = (expiryDate: string) => {
+        const daysUntilExpiry = getDaysUntilExpiry(expiryDate)
+        return daysUntilExpiry <= 30 && daysUntilExpiry >= 0
+    }
+
+    // Function to check if medicine is expired
+    const isExpired = (expiryDate: string) => {
+        const daysUntilExpiry = getDaysUntilExpiry(expiryDate)
+        return daysUntilExpiry < 0
+    }
+
+    // Get expired and expiring medicines
+    const expiredMedicines: ExpiredMedicine[] = data
+        .filter(obat => isExpired(obat.tanggalExpired))
+        .map(obat => ({
+            ...obat,
+            daysUntilExpiry: getDaysUntilExpiry(obat.tanggalExpired)
+        }))
+
+    const expiringMedicines: ExpiredMedicine[] = data
+        .filter(obat => isExpiringWithin30Days(obat.tanggalExpired))
+        .map(obat => ({
+            ...obat,
+            daysUntilExpiry: getDaysUntilExpiry(obat.tanggalExpired)
+        }))
+
+    // Show modal automatically when there are expired or expiring medicines
+    React.useEffect(() => {
+        if (expiredMedicines.length > 0 || expiringMedicines.length > 0) {
+            setShowExpiredModal(true)
+        }
+    }, [expiredMedicines.length, expiringMedicines.length])
 
     // Function to generate new batch number
     const generateBatchNumber = () => {
@@ -186,7 +233,9 @@ export function DataTableDemo() {
             accessorKey: "tanggalExpired",
             header: "Tanggal Expired",
             cell: ({ row }) => (
-                <div>{row.getValue("tanggalExpired")}</div>
+                <div>
+                    {row.getValue("tanggalExpired")}
+                </div>
             ),
         },
         {
@@ -239,6 +288,14 @@ export function DataTableDemo() {
                 <h1 className="text-3xl font-bold mb-4">Pengelolaan Obat</h1>
                 <DataAdd onAdd={handleAdd} />
             </div>
+
+            {/* Expired Notification Modal */}
+            <ExpiredNotification
+                isOpen={showExpiredModal}
+                onClose={() => setShowExpiredModal(false)}
+                expiredMedicines={expiredMedicines}
+                expiringMedicines={expiringMedicines}
+            />
 
             {/* Table */}
             <div className="rounded-md border bg-white">

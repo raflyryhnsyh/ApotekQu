@@ -13,16 +13,8 @@ import {
     useReactTable,
     VisibilityState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-    DropdownMenu,
-    DropdownMenuCheckboxItem,
-    DropdownMenuContent,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import {
     Table,
     TableBody,
@@ -162,18 +154,10 @@ export function DataTableDemo() {
         },
         {
             accessorKey: "nama",
-            header: ({ column }) => {
-                return (
-                    <Button
-                        variant="ghost"
-                        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-                    >
-                        Nama
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                    </Button>
-                )
-            },
-            cell: ({ row }) => <div>{row.getValue("nama")}</div>,
+            header: "Nama Obat",
+            cell: ({ row }) => (
+                <div className="font-medium">{row.getValue("nama")}</div>
+            ),
         },
         {
             accessorKey: "kategori",
@@ -247,44 +231,6 @@ export function DataTableDemo() {
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold mb-4">Obat Master</h1>
                 <DataAdd onAdd={handleAdd} />
-            </div>
-
-            {/* Filter dan controls */}
-            <div className="flex items-center justify-between">
-                <Input
-                    placeholder="Filter nama obat..."
-                    value={(table.getColumn("nama")?.getFilterValue() as string) ?? ""}
-                    onChange={(event) =>
-                        table.getColumn("nama")?.setFilterValue(event.target.value)
-                    }
-                    className="max-w-sm"
-                />
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="ml-auto">
-                            Columns <ChevronDown className="ml-2 h-4 w-4" />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        {table
-                            .getAllColumns()
-                            .filter((column) => column.getCanHide())
-                            .map((column) => {
-                                return (
-                                    <DropdownMenuCheckboxItem
-                                        key={column.id}
-                                        className="capitalize"
-                                        checked={column.getIsVisible()}
-                                        onCheckedChange={(value) =>
-                                            column.toggleVisibility(!!value)
-                                        }
-                                    >
-                                        {column.id}
-                                    </DropdownMenuCheckboxItem>
-                                )
-                            })}
-                    </DropdownMenuContent>
-                </DropdownMenu>
             </div>
 
             {/* Table */}

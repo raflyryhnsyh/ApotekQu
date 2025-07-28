@@ -49,47 +49,47 @@ interface ModalState {
 }
 
 const penjualanData: PenjualanItem[] = [
-  { no: 1, nama: "Paracetamol", kategori: "Pain Relief", terjual: 150, satuan: "Box", totalPenjualan: 750, keuntungan: 675 },
-  { no: 2, nama: "Amoxicillin", kategori: "Antibiotics", terjual: 120, satuan: "Bottle", totalPenjualan: 600, keuntungan: 540 },
-  { no: 3, nama: "Ibuprofen", kategori: "Pain Relief", terjual: 100, satuan: "Box", totalPenjualan: 500, keuntungan: 450 },
-  { no: 4, nama: "Cetirizine", kategori: "Antihistamine", terjual: 90, satuan: "Box", totalPenjualan: 450, keuntungan: 405 },
-  { no: 5, nama: "Omeprazole", kategori: "Acid Reducer", terjual: 80, satuan: "Box", totalPenjualan: 400, keuntungan: 360 },
+  { no: 1, nama: "Paracetamol", kategori: "Pain Relief", terjual: 150, satuan: "Box", totalPenjualan: 750000, keuntungan: 675000 },
+  { no: 2, nama: "Amoxicillin", kategori: "Antibiotics", terjual: 120, satuan: "Bottle", totalPenjualan: 600000, keuntungan: 540000 },
+  { no: 3, nama: "Ibuprofen", kategori: "Pain Relief", terjual: 100, satuan: "Box", totalPenjualan: 500000, keuntungan: 450000 },
+  { no: 4, nama: "Cetirizine", kategori: "Antihistamine", terjual: 90, satuan: "Box", totalPenjualan: 450000, keuntungan: 405000 },
+  { no: 5, nama: "Omeprazole", kategori: "Acid Reducer", terjual: 80, satuan: "Box", totalPenjualan: 400000, keuntungan: 360000 },
 ];
 
 const pembelianData: PembelianItem[] = [
-  { no: 1, nama: "Paracetamol", jumlah: 150, satuan: "Box", totalPembelian: 750 },
-  { no: 2, nama: "Amoxicillin", jumlah: 120, satuan: "Bottle", totalPembelian: 600 },
-  { no: 3, nama: "Ibuprofen", jumlah: 100, satuan: "Box", totalPembelian: 500 },
-  { no: 4, nama: "Cetirizine", jumlah: 90, satuan: "Box", totalPembelian: 450 },
-  { no: 5, nama: "Omeprazole", jumlah: 80, satuan: "Box", totalPembelian: 400 },
+  { no: 1, nama: "Paracetamol", jumlah: 150, satuan: "Box", totalPembelian: 750000 },
+  { no: 2, nama: "Amoxicillin", jumlah: 120, satuan: "Bottle", totalPembelian: 600000 },
+  { no: 3, nama: "Ibuprofen", jumlah: 100, satuan: "Box", totalPembelian: 500000 },
+  { no: 4, nama: "Cetirizine", jumlah: 90, satuan: "Box", totalPembelian: 450000 },
+  { no: 5, nama: "Omeprazole", jumlah: 80, satuan: "Box", totalPembelian: 400000 },
 ];
 
 // Sample detail data for modals
 const penjualanDetails: Record<number, PenjualanDetail[]> = {
   1: [
-    { no: 1, tanggal: "2024-01-01", idTransaksi: "SALES-00123", jumlah: 150, total: 10000, petugas: "Ratu" },
-    { no: 2, tanggal: "2024-01-10", idTransaksi: "SALES-00124", jumlah: 120, total: 20000, petugas: "Ratu" },
-    { no: 3, tanggal: "2024-01-16", idTransaksi: "SALES-00125", jumlah: 100, total: 30000, petugas: "Ratu" },
-    { no: 4, tanggal: "2024-01-23", idTransaksi: "SALES-00126", jumlah: 90, total: 10000, petugas: "Sarah" },
-    { no: 5, tanggal: "2024-01-29", idTransaksi: "SALES-00127", jumlah: 80, total: 10000, petugas: "Sarah" },
+    { no: 1, tanggal: "01/01/2024", idTransaksi: "SALES-00123", jumlah: 150, total: 150000, petugas: "Ratu" },
+    { no: 2, tanggal: "10/01/2024", idTransaksi: "SALES-00124", jumlah: 120, total: 200000, petugas: "Ratu" },
+    { no: 3, tanggal: "16/01/2024", idTransaksi: "SALES-00125", jumlah: 100, total: 300000, petugas: "Ratu" },
+    { no: 4, tanggal: "23/01/2024", idTransaksi: "SALES-00126", jumlah: 90, total: 100000, petugas: "Sarah" },
+    { no: 5, tanggal: "29/01/2024", idTransaksi: "SALES-00127", jumlah: 80, total: 100000, petugas: "Sarah" },
   ],
   2: [
-    { no: 1, tanggal: "2024-01-02", idTransaksi: "SALES-00128", jumlah: 120, total: 15000, petugas: "Ratu" },
-    { no: 2, tanggal: "2024-01-12", idTransaksi: "SALES-00129", jumlah: 100, total: 25000, petugas: "Sarah" },
+    { no: 1, tanggal: "02/01/2024", idTransaksi: "SALES-00128", jumlah: 120, total: 150000, petugas: "Ratu" },
+    { no: 2, tanggal: "12/01/2024", idTransaksi: "SALES-00129", jumlah: 100, total: 250000, petugas: "Sarah" },
   ],
   // Add more details for other items as needed
 };
 
 const pembelianDetails: Record<number, PembelianDetail[]> = {
   1: [
-    { no: 1, tanggal: "2024-01-01", nomorPO: "PO12345", jumlah: 150, hargaBeli: 1400, total: 10000, supplier: "Supplier A", petugas: "Ratu" },
-    { no: 2, tanggal: "2024-01-10", nomorPO: "PO12346", jumlah: 120, hargaBeli: 1500, total: 20000, supplier: "Supplier B", petugas: "Ratu" },
-    { no: 3, tanggal: "2024-01-16", nomorPO: "PO12347", jumlah: 100, hargaBeli: 1600, total: 30000, supplier: "Supplier C", petugas: "Ratu" },
-    { no: 4, tanggal: "2024-01-23", nomorPO: "PO12348", jumlah: 90, hargaBeli: 5800, total: 10000, supplier: "Supplier D", petugas: "Sarah" },
-    { no: 5, tanggal: "2024-01-29", nomorPO: "PO12349", jumlah: 80, hargaBeli: 1400, total: 10000, supplier: "Supplier E", petugas: "Sarah" },
+    { no: 1, tanggal: "01/01/2024", nomorPO: "PO12345", jumlah: 150, hargaBeli: 14000, total: 100000, supplier: "Supplier A", petugas: "Ratu" },
+    { no: 2, tanggal: "10/01/2024", nomorPO: "PO12346", jumlah: 120, hargaBeli: 15000, total: 200000, supplier: "Supplier B", petugas: "Ratu" },
+    { no: 3, tanggal: "16/01/2024", nomorPO: "PO12347", jumlah: 100, hargaBeli: 16000, total: 300000, supplier: "Supplier C", petugas: "Ratu" },
+    { no: 4, tanggal: "23/01/2024", nomorPO: "PO12348", jumlah: 90, hargaBeli: 58000, total: 100000, supplier: "Supplier D", petugas: "Sarah" },
+    { no: 5, tanggal: "29/01/2024", nomorPO: "PO12349", jumlah: 80, hargaBeli: 14000, total: 100000, supplier: "Supplier E", petugas: "Sarah" },
   ],
   2: [
-    { no: 1, tanggal: "2024-01-03", nomorPO: "PO12350", jumlah: 120, hargaBeli: 1200, total: 18000, supplier: "Supplier F", petugas: "Ratu" },
+    { no: 1, tanggal: "03/01/2024", nomorPO: "PO12350", jumlah: 120, hargaBeli: 12000, total: 180000, supplier: "Supplier F", petugas: "Ratu" },
   ],
   // Add more details for other items as needed
 };
@@ -228,6 +228,55 @@ export default function LaporanPage() {
   const totalKeuntungan = penjualanData.reduce((acc, item) => acc + item.keuntungan, 0);
   const totalPembelian = pembelianData.reduce((acc, item) => acc + item.totalPembelian, 0);
 
+  // Function to export data to CSV
+  const exportToCSV = (data: any[], filename: string, headers: string[]) => {
+    const csvContent = [
+      headers.join(','), // Header row
+      ...data.map(row =>
+        headers.map(header => {
+          const value = row[header];
+          // Handle values that might contain commas by wrapping in quotes
+          return typeof value === 'string' && value.includes(',')
+            ? `"${value}"`
+            : value;
+        }).join(',')
+      )
+    ].join('\n');
+
+    // Create a Blob from the CSV content
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    // Create a link element to download the CSV
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+
+    // Append the link to the body and trigger the download
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Export Penjualan function
+  const exportPenjualan = () => {
+    const headers = ['no', 'nama', 'kategori', 'terjual', 'satuan', 'totalPenjualan', 'keuntungan'];
+    const currentDate = new Date().toISOString().split('T')[0];
+    const filename = `laporan-penjualan-${currentDate}.csv`;
+
+    exportToCSV(penjualanData, filename, headers);
+  };
+
+  // Export Pembelian function
+  const exportPembelian = () => {
+    const headers = ['no', 'nama', 'jumlah', 'satuan', 'totalPembelian'];
+    const currentDate = new Date().toISOString().split('T')[0];
+    const filename = `laporan-pembelian-${currentDate}.csv`;
+
+    exportToCSV(pembelianData, filename, headers);
+  };
+
   const openPenjualanModal = (productId: number, productName: string) => {
     const details = penjualanDetails[productId] || [];
     setModalState({
@@ -266,7 +315,10 @@ export default function LaporanPage() {
             <h2 className="font-semibold text-lg text-gray-800">Laporan Penjualan</h2>
             <p className="text-sm text-gray-500 mt-1">Tanggal: 2024-01-01 sampai 2024-02-01</p>
           </div>
-          <button className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
+          <button
+            onClick={exportPenjualan}
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+          >
             Export
           </button>
         </div>
@@ -296,7 +348,7 @@ export default function LaporanPage() {
                   <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{item.totalPenjualan.toLocaleString()}</td>
                   <td className="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{item.keuntungan.toLocaleString()}</td>
                   <td className="px-3 py-3 whitespace-nowrap text-sm text-green-600 hover:text-green-800 cursor-pointer font-medium"
-                      onClick={() => openPenjualanModal(item.no, item.nama)}>
+                    onClick={() => openPenjualanModal(item.no, item.nama)}>
                     View
                   </td>
                 </tr>
@@ -354,7 +406,7 @@ export default function LaporanPage() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.satuan}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp {item.totalPembelian.toLocaleString()}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-green-600 hover:text-green-800 cursor-pointer font-medium"
-                      onClick={() => openPembelianModal(item.no, item.nama)}>
+                    onClick={() => openPembelianModal(item.no, item.nama)}>
                     View
                   </td>
                 </tr>

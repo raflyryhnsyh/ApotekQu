@@ -19,7 +19,7 @@ import { NavigationMenuProps } from "@radix-ui/react-navigation-menu";
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { ChevronDown } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/auth-context";
 
 // Navbar untuk APA
 const APANavMenu = (props: NavigationMenuProps) => (

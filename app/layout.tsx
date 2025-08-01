@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ConditionalNavbar } from "@/components/navbar/conditional-navbar";
+import { AuthProvider } from "@/contexts/auth-context";
 
 export const metadata: Metadata = {
   title: "Apotek-Qu - Sistem Manajemen Apotek",
@@ -15,10 +16,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
-        <ConditionalNavbar />
-        <main className="mt-16 p-8">
-          {children}
-        </main>
+        <AuthProvider>
+          <ConditionalNavbar />
+          <main className="mt-16 p-8">
+            {children}
+          </main>
+        </AuthProvider>
       </body>
     </html>
   );

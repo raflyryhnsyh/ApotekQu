@@ -33,6 +33,11 @@ export async function middleware(req: NextRequest) {
 
     const { pathname } = req.nextUrl
 
+    // Skip middleware for API routes
+    if (pathname.startsWith('/api/')) {
+        return response
+    }
+
     // Public routes yang tidak perlu authentication
     const publicRoutes = ['/login']
 

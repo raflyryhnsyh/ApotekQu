@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useState } from 'react';
 import { DataTable, Column } from "@/components/ui/data-table";
 
@@ -18,9 +18,9 @@ interface LowStockMedicine {
 }
 
 export default function APAPage() {
-    const { user, profile, error, signOut } = useAuth();
+    const { user, profile, error, signOut, loading } = useAuth();
 
-    const [loading, setLoading] = useState(false);
+    const [dataLoading, setDataLoading] = useState(false);
 
     // Data untuk obat mendekati expire
     const [expiredMedicines, setExpiredMedicines] = useState<ExpiredMedicine[]>([
@@ -74,33 +74,57 @@ export default function APAPage() {
 
     useEffect(() => {
         const initializePage = async () => {
-            setLoading(true);
+            setDataLoading(true);
             await new Promise(resolve => setTimeout(resolve, 1000));
-            setLoading(false);
+            setDataLoading(false);
         };
 
         initializePage();
     }, []);
 
+    // Show loading while auth is being checked
     if (loading) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-lg">Loading...</p>
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500 mx-auto"></div>
+                    <p className="mt-4 text-gray-600">Loading...</p>
+                </div>
             </div>
         );
     }
 
     if (error) {
-        return <div>Error: {error}</div>;
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-red-600">Error: {error}</p>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
     }
 
-    if (!user) {
-        return <div>Please login</div>;
-    }
-
-    if (!profile) {
-        return <div>Loading profile...</div>;
+    // Check if user is authenticated AND has profile data
+    if (!user || !profile) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <p className="text-gray-600">Please login to continue</p>
+                    <button
+                        onClick={() => window.location.href = '/login'}
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                    >
+                        Go to Login
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -124,19 +148,19 @@ export default function APAPage() {
                     {/* Total Penjualan */}
                     <div className="bg-green-100 rounded-lg p-6 border border-green-200">
                         <h3 className="text-sm font-medium text-gray-700 mb-2">Total Penjualan</h3>
-                        <p className="text-3xl font-bold text-gray-900">Rp 5,250</p>
+                        <p className="text-3xl font-bold text-gray-900">Rp 5.250.000</p>
                     </div>
 
                     {/* Total Keuntungan */}
                     <div className="bg-green-100 rounded-lg p-6 border border-green-200">
                         <h3 className="text-sm font-medium text-gray-700 mb-2">Total Keuntungan</h3>
-                        <p className="text-3xl font-bold text-gray-900">Rp 1,575</p>
+                        <p className="text-3xl font-bold text-gray-900">Rp 1.575.000</p>
                     </div>
 
                     {/* Total Pengeluaran */}
                     <div className="bg-green-100 rounded-lg p-6 border border-green-200">
                         <h3 className="text-sm font-medium text-gray-700 mb-2">Total Pengeluaran</h3>
-                        <p className="text-3xl font-bold text-gray-900">Rp 1,575</p>
+                        <p className="text-3xl font-bold text-gray-900">Rp 1.575.000</p>
                     </div>
                 </div>
 

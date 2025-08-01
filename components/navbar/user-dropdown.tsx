@@ -18,7 +18,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/auth-context";
 import { Settings, LogOut, User } from "lucide-react";
 import { useState } from "react";
 
@@ -26,8 +26,8 @@ export const UserDropdown = () => {
     const { profile, signOut } = useAuth();
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
-    const handleLogoutClick = () => {
-        setShowLogoutDialog(true);
+    const handleLogout = async () => {
+        await signOut();
     };
 
     const handleConfirmLogout = () => {
@@ -52,7 +52,7 @@ export const UserDropdown = () => {
                         </div>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogoutClick} className="cursor-pointer text-red-600 focus:text-red-600">
+                    <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600">
                         <LogOut className="mr-2 h-4 w-4" />
                         Log Out
                     </DropdownMenuItem>

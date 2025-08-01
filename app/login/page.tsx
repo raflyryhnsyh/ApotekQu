@@ -17,6 +17,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { useAuth } from "@/contexts/auth-context";
 
 const formSchema = z.object({
     username: z.string().min(2, "Username minimal 2 karakter"),
@@ -28,6 +29,7 @@ export default function LoginPage() {
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
     const supabase = createClient();
+    const { setUserData } = useAuth();
 
     const form = useForm<z.infer<typeof formSchema>>({
         defaultValues: {
@@ -42,56 +44,72 @@ export default function LoginPage() {
         setError(null);
 
         try {
-            const { data: authData, error } = await supabase.auth.signInWithPassword({
-                email: data.username + "@apotekqu.com",
-                password: data.password,
+            // Gunakan API endpoint login yang baru
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: data.username + "@apotekqu.com",
+                    password: data.password,
+                }),
             });
 
-            if (error) {
-                console.log('Login error:', error);
-                setError(error.message === 'Invalid login credentials'
-                    ? 'Username atau password salah'
-                    : error.message);
+            // Check if response is HTML (might be redirected)
+            const contentType = response.headers.get('content-type') || '';
+            if (contentType.includes('text/html')) {
+                setError('Server tidak dapat diakses. Pastikan server sedang berjalan.');
                 return;
             }
 
-            if (authData.user) {
-                // Fetch user profile untuk mendapatkan role
-                const { data, error } = await supabase
-                    .from('pengguna')
-                    .select('role')
-                    .eq('id', authData.user.id)
-                    .single();
+            let result;
+            try {
+                result = await response.json();
+            } catch (parseError) {
+                console.log('JSON parse error:', parseError);
+                setError('Server mengembalikan respons yang tidak valid');
+                return;
+            }
 
-                if (error) {
-                    console.log('Profile fetch error:', error);
-                    setError('Gagal mengambil data profil pengguna');
-                    return;
-                }
+            if (!response.ok) {
+                setError(result.error || 'Login gagal');
+                return;
+            }
+
+            if (result.success && result.data) {
+                const { profile, session } = result.data;
 
                 // Validasi role
-                const userRole = data?.role;
-                if (!userRole || !['APA', 'Pegawai'].includes(userRole)) {
+                if (!profile.role || !['APA', 'Pegawai'].includes(profile.role)) {
                     setError('Akun Anda tidak memiliki akses ke sistem ini');
-                    await supabase.auth.signOut();
                     return;
                 }
 
-                console.log('Login berhasil! Role:', userRole);
+                console.log('Login berhasil! Role:', profile.role);
 
-                // Store role di localStorage untuk akses cepat
-                localStorage.setItem('userRole', userRole);
-
-                // Redirect berdasarkan role
-                switch (userRole) {
-                    case 'APA':
-                        router.push('/APA');
-                        break;
-                    case 'Pegawai':
-                        router.push('/pegawai');
-                        break;
+                // Set the session in Supabase client
+                if (session) {
+                    await supabase.auth.setSession({
+                        access_token: session.access_token,
+                        refresh_token: session.refresh_token
+                    });
                 }
 
+                // Update auth context immediately
+                setUserData(
+                    { id: result.data.user.id, email: result.data.user.email } as any,
+                    {
+                        role: profile.role,
+                        full_name: profile.full_name
+                    }
+                );
+
+                // Wait a bit to ensure everything is set
+                await new Promise(resolve => setTimeout(resolve, 300));
+
+                // Redirect berdasarkan role
+                router.push(profile.role === 'APA' ? '/APA' : '/pegawai');
                 router.refresh();
             }
 

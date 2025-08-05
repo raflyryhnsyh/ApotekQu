@@ -69,7 +69,7 @@ export const purchaseOrderService = {
                 total: number
                 totalPages: number
             }
-        }>('/purchase-orders', queryParams)
+        }>('/reports/purchase', queryParams)
     },
 
     // Create new purchase order
@@ -77,6 +77,6 @@ export const purchaseOrderService = {
         return apiClient.post<{
             purchase_order: PurchaseOrder
             details: any[]
-        }>('/purchase-orders', data)
+        }>('/reports/purchase', data)
     }
 }

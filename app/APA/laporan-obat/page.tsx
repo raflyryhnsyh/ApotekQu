@@ -5,7 +5,6 @@ import { X, Download, Calendar, Loader2 } from "lucide-react";
 // Import API clients
 import { salesAPI } from "@/lib/api/sales";
 import { purchaseOrderApi } from "@/lib/api/purchase-orders";
-import { reportsService } from "@/lib/api/reports";
 import { PenjualanWithDetails, DetailPenjualan } from "@/types/database";
 
 // UI Interface types
@@ -510,17 +509,17 @@ export default function LaporanPage() {
     });
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
+        <p className="mt-4 text-lg text-gray-600">Loading...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="p-8 space-y-8 bg-gray-50 min-h-screen mt-14">
-
-
-      {/* Loading State */}
-      {loading && (
-        <div className="flex justify-center items-center py-8">
-          <Loader2 className="animate-spin text-blue-500" size={32} />
-          <span className="ml-2 text-gray-600">Memuat data...</span>
-        </div>
-      )}
+    <div>
 
       {/* Error State */}
       {error && (
@@ -592,7 +591,7 @@ export default function LaporanPage() {
         {/* Rekap Section */}
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
           <h3 className="font-semibold text-sm text-gray-800 mb-3">Rekap</h3>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className="grid grid-rows-2 gap-4 text-sm">
             <div className="flex justify-between">
               <span className="text-gray-600">Total Penjualan</span>
               <span className="font-medium text-gray-900">Rp {totalPenjualan.toLocaleString()}</span>

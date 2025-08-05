@@ -9,7 +9,7 @@ import {
 } from '@/types/database';
 
 class SalesAPI {
-    private baseUrl = '/api/sales';
+    private baseUrl = '/api/reports/sales';
 
     // Get all sales with pagination and filters
     async getSales(params?: {

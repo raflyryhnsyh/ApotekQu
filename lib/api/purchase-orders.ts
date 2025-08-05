@@ -26,18 +26,18 @@ export const purchaseOrderApi = {
         if (params?.sortOrder) searchParams.set('sortOrder', params.sortOrder)
 
         const query = searchParams.toString()
-        const endpoint = query ? `/purchase-orders?${query}` : '/purchase-orders'
+        const endpoint = query ? `/reports/purchase?${query}` : '/reports/purchase'
 
         return apiClient.get<PaginatedResponse<any>>(endpoint)
     },
 
     // Create new purchase order
     create: async (data: CreatePurchaseOrderData) => {
-        return apiClient.post<any>('/purchase-orders', data)
+        return apiClient.post<any>('/reports/purchase', data)
     },
 
     // Get purchase order by ID
     getById: async (id: string) => {
-        return apiClient.get<any>(`/purchase-orders/${id}`)
+        return apiClient.get<any>(`/reports/purchase/${id}`)
     }
 }

@@ -81,6 +81,12 @@ export async function GET(request: NextRequest) {
             }, { status: 500 });
         }
 
+        console.log("Fetched sales data:", sales?.length || 0, "records");
+        console.log("Sample sales record:", sales?.[0]);
+        if (sales?.[0]?.detail_penjualan) {
+            console.log("Sample detail_penjualan:", sales[0].detail_penjualan);
+        }
+
         // Get total count for pagination
         let countQuery = supabase
             .from("penjualan")
@@ -146,27 +152,7 @@ export async function POST(request: NextRequest) {
             sum + (item.jumlah_terjual * item.harga), 0
         );
 
-        // Start transaction by creating the sale first
-        const { data: sale, error: saleError } = await supabase
-            .from("penjualan")
-            .insert([{
-                diproses_oleh: validatedData.diproses_oleh,
-                total: total,
-                dibuat_pada: new Date().toISOString()
-            }])
-            .select()
-            .single();
-
-        if (saleError) {
-            console.error("Error creating sale:", saleError);
-            return NextResponse.json({
-                success: false,
-                error: saleError.message,
-                data: null
-            }, { status: 500 });
-        }
-
-        // Create sale details - validate batch numbers exist in detail_obat first
+        // Consolidate items with same id_obat and nomor_batch BEFORE creating the sale
         const consolidatedItems = new Map();
 
         // Consolidate items with same id_obat and nomor_batch
@@ -186,8 +172,10 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        // Validate that all batch numbers exist in detail_obat
+        // VALIDATE EVERYTHING FIRST before creating any database records
         const validatedItems = [];
+        const stockValidationErrors = [];
+
         for (const item of Array.from(consolidatedItems.values())) {
             console.log(`Validating batch: ${item.nomor_batch} for product: ${item.id_obat}`);
 
@@ -206,38 +194,64 @@ export async function POST(request: NextRequest) {
                 const { data: availableBatches } = await supabase
                     .from("detail_obat")
                     .select("nomor_batch, stok_sekarang, id_obat")
-                    .eq("id_obat", item.id_obat);
+                    .eq("id_obat", item.id_obat)
+                    .gt("stok_sekarang", 0)
+                    .order("tanggal_expired", { ascending: true });
 
                 console.log(`Available batches for product ${item.id_obat}:`, availableBatches);
 
-                // Debug: Check if batch exists with different product
-                const { data: batchWithDifferentProduct } = await supabase
-                    .from("detail_obat")
-                    .select("nomor_batch, stok_sekarang, id_obat")
-                    .eq("nomor_batch", item.nomor_batch);
+                // Try to find any available batch for this product with sufficient stock
+                if (availableBatches && availableBatches.length > 0) {
+                    const availableBatch = availableBatches.find(b => b.stok_sekarang >= item.jumlah_terjual);
+                    if (availableBatch) {
+                        console.log(`Using alternative batch: ${availableBatch.nomor_batch}`);
+                        item.nomor_batch = availableBatch.nomor_batch;
+                        validatedItems.push(item);
+                        continue;
+                    }
+                }
 
-                console.log(`Batch ${item.nomor_batch} exists with products:`, batchWithDifferentProduct);
-
-                return NextResponse.json({
-                    success: false,
-                    error: `Batch ${item.nomor_batch} not found in inventory for product ${item.id_obat}. Available batches: ${availableBatches?.map(b => b.nomor_batch).join(', ') || 'none'}`,
-                    data: null
-                }, { status: 400 });
+                stockValidationErrors.push(`Batch ${item.nomor_batch} not found for product ${item.id_obat}. Available batches: ${availableBatches?.map(b => `${b.nomor_batch} (stock: ${b.stok_sekarang})`).join(', ') || 'none'}`);
+                continue;
             }
 
             // Check stock availability
             if (batchExists.stok_sekarang < item.jumlah_terjual) {
-                return NextResponse.json({
-                    success: false,
-                    error: `Insufficient stock for batch ${item.nomor_batch}. Available: ${batchExists.stok_sekarang}, Requested: ${item.jumlah_terjual}`,
-                    data: null
-                }, { status: 400 });
+                stockValidationErrors.push(`Insufficient stock for batch ${item.nomor_batch}. Available: ${batchExists.stok_sekarang}, Requested: ${item.jumlah_terjual}`);
+                continue;
             }
 
             validatedItems.push(item);
         }
 
-        const saleDetails = validatedItems.map(item => ({
+        // If validation failed, return error WITHOUT creating any database records
+        if (stockValidationErrors.length > 0) {
+            return NextResponse.json({
+                success: false,
+                error: `Stock validation failed: ${stockValidationErrors.join('; ')}`,
+                data: null
+            }, { status: 400 });
+        }
+
+        // Only create the sale AFTER all validations pass
+        const { data: sale, error: saleError } = await supabase
+            .from("penjualan")
+            .insert([{
+                diproses_oleh: validatedData.diproses_oleh,
+                total: total,
+                dibuat_pada: new Date().toISOString()
+            }])
+            .select()
+            .single();
+
+        if (saleError) {
+            console.error("Error creating sale:", saleError);
+            return NextResponse.json({
+                success: false,
+                error: saleError.message,
+                data: null
+            }, { status: 500 });
+        } const saleDetails = validatedItems.map(item => ({
             id_penjualan: sale.id,
             id_obat: item.id_obat,
             jumlah_terjual: item.jumlah_terjual,
@@ -283,7 +297,7 @@ export async function POST(request: NextRequest) {
             // Update stock (no need to check again since we validated above)
             const { error: updateError } = await supabase
                 .from("detail_obat")
-                .update({ stok: newStock })
+                .update({ stok_sekarang: newStock })
                 .eq("nomor_batch", item.nomor_batch)
                 .eq("id_obat", item.id_obat);
 

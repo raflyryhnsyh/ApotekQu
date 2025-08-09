@@ -18,8 +18,12 @@ interface TransactionDetailProps {
 export default function TransactionDetailModal({ isOpen, onClose, transaction }: TransactionDetailProps) {
     if (!isOpen || !transaction) return null;
 
+    // Debug logging
+    console.log('Transaction Detail Modal - Transaction data:', transaction);
+    console.log('Transaction items:', transaction.items);
+
     return (
-        <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="p-6 border-b">
@@ -49,21 +53,40 @@ export default function TransactionDetailModal({ isOpen, onClose, transaction }:
                     {/* Medicine List */}
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Obat-Obatan</h3>
-                        <div className="space-y-4">
-                            {transaction.items.map((item, index) => (
-                                <div key={index} className="border-b border-gray-200 pb-3 last:border-b-0">
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <h4 className="font-medium text-gray-900">{item.name}</h4>
-                                            <p className="text-sm text-gray-600">Jumlah: {item.quantity}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-medium text-gray-900">Rp {item.price.toLocaleString('id-ID')}</p>
+                        {!transaction.items || transaction.items.length === 0 ? (
+                            <div className="text-gray-500 text-center py-4">
+                                Tidak ada data obat untuk transaksi ini
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {transaction.items.map((item, index) => (
+                                    <div key={index} className="border-b border-gray-200 pb-3 last:border-b-0">
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1">
+                                                <h4 className="font-medium text-gray-900">{item.name || 'Unknown Product'}</h4>
+                                                <p className="text-sm text-gray-600">Jumlah: {item.quantity}</p>
+                                                <p className="text-sm text-gray-600">Harga satuan: Rp {item.price.toLocaleString('id-ID')}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-medium text-gray-900">
+                                                    Rp {(item.quantity * item.price).toLocaleString('id-ID')}
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
+                                ))}
+
+                                {/* Total */}
+                                <div className="border-t pt-3 mt-4">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-lg font-semibold text-gray-900">Total:</span>
+                                        <span className="text-lg font-bold text-gray-900">
+                                            Rp {transaction.items.reduce((total, item) => total + (item.quantity * item.price), 0).toLocaleString('id-ID')}
+                                        </span>
+                                    </div>
                                 </div>
-                            ))}
-                        </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -237,20 +237,22 @@ export default function PenjualanPage() {
                     date: new Date(sale.dibuat_pada).toISOString().split('T')[0],
                     pharmacist: sale.pengguna.full_name,
                     total: sale.total,
-                    items: sale.detail_penjualan.map(detail => ({
-                        name: detail.obat.nama_obat,
+                    items: sale.detail_penjualan?.map(detail => ({
+                        name: detail.obat?.nama_obat || 'Unknown Product',
                         quantity: detail.jumlah_terjual,
                         price: detail.harga
-                    }))
+                    })) || []
                 }));
 
+                console.log('Loaded transactions:', transformedTransactions);
                 setTransactions(transformedTransactions);
             } else {
+                console.error('Failed to load transactions:', response.error);
                 setError(response.error || 'Gagal memuat data transaksi');
             }
         } catch (error) {
             console.error('Error loading transactions:', error);
-            setError('Gagal memuat data transaksi');
+            setError('Gagal memuat data transaksi: ' + (error instanceof Error ? error.message : 'Network error'));
         } finally {
             setTransactionsLoading(false);
         }
@@ -258,27 +260,48 @@ export default function PenjualanPage() {
 
     const addToCart = () => {
         const selectedProduct = products.find(p => p.id === selectedProductId);
-        if (selectedProduct && quantity > 0 && quantity <= selectedProduct.stock) {
-            const existingItem = cart.find(item => item.id === selectedProduct.id);
-
-            if (existingItem) {
-                setCart(cart.map(item =>
-                    item.id === selectedProduct.id
-                        ? { ...item, quantity: item.quantity + quantity, subtotal: (item.quantity + quantity) * item.price }
-                        : item
-                ));
-            } else {
-                setCart([...cart, {
-                    id: selectedProduct.id,
-                    name: selectedProduct.name,
-                    quantity: quantity,
-                    price: selectedProduct.price,
-                    subtotal: quantity * selectedProduct.price
-                }]);
-            }
-            setSelectedProductId("");
-            setQuantity(1);
+        if (!selectedProduct) {
+            setError('Produk tidak ditemukan');
+            return;
         }
+
+        if (quantity <= 0) {
+            setError('Jumlah harus lebih dari 0');
+            return;
+        }
+
+        // Check if there's enough stock (considering existing cart items)
+        const existingCartQuantity = cart.find(item => item.id === selectedProduct.id)?.quantity || 0;
+        const totalRequestedQuantity = existingCartQuantity + quantity;
+
+        if (totalRequestedQuantity > selectedProduct.stock) {
+            setError(`Stok tidak mencukupi. Tersedia: ${selectedProduct.stock}, Di keranjang: ${existingCartQuantity}, Diminta: ${quantity}`);
+            return;
+        }
+
+        const existingItem = cart.find(item => item.id === selectedProduct.id);
+
+        if (existingItem) {
+            setCart(cart.map(item =>
+                item.id === selectedProduct.id
+                    ? { ...item, quantity: item.quantity + quantity, subtotal: (item.quantity + quantity) * item.price }
+                    : item
+            ));
+        } else {
+            setCart([...cart, {
+                id: selectedProduct.id,
+                name: selectedProduct.name,
+                quantity: quantity,
+                price: selectedProduct.price,
+                subtotal: quantity * selectedProduct.price
+            }]);
+        }
+
+        setSelectedProductId("");
+        setQuantity(1);
+        setError(""); // Clear any previous errors
+
+        console.log(`Added to cart: ${selectedProduct.name}, Quantity: ${quantity}, Available stock: ${selectedProduct.stock}`);
     };
 
     const removeFromCart = (id: string) => {
@@ -296,6 +319,12 @@ export default function PenjualanPage() {
     };
 
     const handlePayment = async () => {
+        // Prevent double submission
+        if (loading) {
+            console.log('Payment already in progress, ignoring duplicate request');
+            return;
+        }
+
         // Double check authentication before payment
         if (!user?.id || !profile) {
             setError('User tidak terautentikasi. Silakan login ulang.');
@@ -308,26 +337,80 @@ export default function PenjualanPage() {
         const total = getTotalAmount();
         const cash = parseFloat(cashAmount) || 0;
 
+        if (cash < total) {
+            setError("Jumlah uang tidak mencukupi!");
+            return;
+        }
+
+        if (cart.length === 0) {
+            setError("Keranjang kosong!");
+            return;
+        }
+
         if (cash >= total && cart.length > 0) {
             try {
                 setLoading(true);
+                setError(""); // Clear previous errors
 
-                // Prepare sale data for API
+                // Validate all cart items have valid batches before sending
+                const invalidItems: string[] = [];
+
+                // Prepare sale data for API with better batch validation
+                const saleItems = cart.map(item => {
+                    // Find available batches for this product
+                    const availableBatches = productsWithStock.filter(p =>
+                        p.id_obat === item.id &&
+                        p.totalStok > 0
+                    );
+
+                    if (availableBatches.length === 0) {
+                        invalidItems.push(`${item.name} (tidak ada batch tersedia)`);
+                        return null;
+                    }
+
+                    // Sort by expiry date (closest to expire first) to use FIFO
+                    availableBatches.sort((a, b) => new Date(a.tanggalExpired).getTime() - new Date(b.tanggalExpired).getTime());
+
+                    // Find a batch with sufficient stock
+                    let selectedBatch = null;
+                    let remainingQuantity = item.quantity;
+
+                    for (const batch of availableBatches) {
+                        if (batch.totalStok >= remainingQuantity) {
+                            selectedBatch = batch;
+                            break;
+                        }
+                    }
+
+                    if (!selectedBatch) {
+                        const totalAvailableStock = availableBatches.reduce((sum, b) => sum + b.totalStok, 0);
+                        invalidItems.push(`${item.name} (stok tidak mencukupi: diminta ${item.quantity}, tersedia ${totalAvailableStock})`);
+                        return null;
+                    }
+
+                    console.log(`Item: ${item.name}, Product ID: ${item.id}, Selected Batch: ${selectedBatch.noBatch}, Available Stock: ${selectedBatch.totalStok}, Quantity: ${item.quantity}`);
+
+                    return {
+                        id_obat: item.id,
+                        jumlah_terjual: item.quantity,
+                        harga: item.price,
+                        nomor_batch: selectedBatch.noBatch
+                    };
+                }).filter(item => item !== null);
+
+                // Check if there are any invalid items
+                if (invalidItems.length > 0) {
+                    setError(`Tidak dapat memproses penjualan: ${invalidItems.join(', ')}`);
+                    setLoading(false);
+                    return;
+                }
+
                 const saleData = {
                     diproses_oleh: user.id,
-                    items: cart.map(item => {
-                        // Find batch info for this product from kelola-obat data
-                        const productWithStock = productsWithStock.find(p => p.id_obat === item.id);
-                        const availableBatch = productWithStock?.noBatch || 'BATCH-001'; // fallback
-
-                        return {
-                            id_obat: item.id,
-                            jumlah_terjual: item.quantity,
-                            harga: item.price,
-                            nomor_batch: availableBatch
-                        };
-                    })
+                    items: saleItems
                 };
+
+                console.log('Sending sale data:', saleData);
 
                 const response = await penjualanAPI.createSale(saleData);
 
@@ -351,8 +434,13 @@ export default function PenjualanPage() {
                     setCart([]);
                     setCashAmount("");
 
-                    // Reload products to update stock
-                    await loadProducts();
+                    console.log('Transaction created successfully:', newTransaction);
+
+                    // Reload products to update stock and transactions
+                    await Promise.all([
+                        loadProducts(),
+                        loadTransactions()
+                    ]);
                 } else {
                     setError(response.error || 'Gagal memproses pembayaran');
                 }

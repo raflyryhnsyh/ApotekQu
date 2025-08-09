@@ -13,8 +13,10 @@ import {
     useReactTable,
     VisibilityState,
 } from "@tanstack/react-table"
+import { ArrowUpDown, Loader2, AlertTriangle, Edit, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
     Table,
     TableBody,
@@ -23,11 +25,12 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 import { DataAdd } from "./data-add"
 import { DataEdit } from "./data-edit"
 import { DataDelete } from "./data-delete"
 import { ExpiredMedicine, ExpiredNotification } from "./pengingat-expired"
-import { Badge } from "../ui/badge"
+import { getKelolaObatData, deleteKelolaObat } from "@/lib/api/kelola-obat"
 
 export type PengelolaanObat = {
     noBatch: string
@@ -36,99 +39,63 @@ export type PengelolaanObat = {
     satuan: string
     tanggalExpired: string
     supplier: string
+    harga_jual?: number
+    kategori?: string
+    komposisi?: string
+    id_obat?: string
 }
 
-// Data dengan beberapa obat yang akan expired untuk testing
-const initialData: PengelolaanObat[] = [
-    {
-        noBatch: "12345",
-        nama: "Aspirin",
-        totalStok: 100,
-        satuan: "Tablets",
-        tanggalExpired: "2025-08-15", // Akan expired dalam 18 hari
-        supplier: "ABC Pharma"
-    },
-    {
-        noBatch: "67890",
-        nama: "Ibuprofen",
-        totalStok: 12,
-        satuan: "Capsules",
-        tanggalExpired: "2025-07-30", // Akan expired dalam 2 hari
-        supplier: "ABC Pharma"
-    },
-    {
-        noBatch: "24680",
-        nama: "Paracetamol",
-        totalStok: 7,
-        satuan: "Tablets",
-        tanggalExpired: "2025-08-25", // Sudah expired
-        supplier: "ABC Pharma"
-    },
-    {
-        noBatch: "13579",
-        nama: "Amoxicillin",
-        totalStok: 12,
-        satuan: "Capsules",
-        tanggalExpired: "2025-12-31",
-        supplier: "ABC Pharma"
-    },
-    {
-        noBatch: "97531",
-        nama: "Loratadine",
-        totalStok: 34,
-        satuan: "Tablets",
-        tanggalExpired: "2025-12-31",
-        supplier: "ABC Pharma"
-    },
-    {
-        noBatch: "86420",
-        nama: "Omeprazole",
-        totalStok: 56,
-        satuan: "Capsules",
-        tanggalExpired: "2025-12-31",
-        supplier: "ABC Pharma"
-    },
-    {
-        noBatch: "36925",
-        nama: "Simvastatin",
-        totalStok: 76,
-        satuan: "Tablets",
-        tanggalExpired: "2025-12-31",
-        supplier: "ABC Pharma"
-    },
-    {
-        noBatch: "74185",
-        nama: "Metformin",
-        totalStok: 3,
-        satuan: "Tablets",
-        tanggalExpired: "2025-12-31",
-        supplier: "ABC Pharma"
-    },
-    {
-        noBatch: "52896",
-        nama: "Ciprofloxacin",
-        totalStok: 123,
-        satuan: "Tablets",
-        tanggalExpired: "2025-12-31",
-        supplier: "ABC Pharma"
-    },
-    {
-        noBatch: "15935",
-        nama: "Albuterol",
-        totalStok: 7,
-        satuan: "Inhaler",
-        tanggalExpired: "2025-12-31",
-        supplier: "ABC Pharma"
-    }
-]
-
 export function DataTableDemo() {
-    const [data, setData] = React.useState<PengelolaanObat[]>(initialData)
+    const [data, setData] = React.useState<PengelolaanObat[]>([])
+    const [loading, setLoading] = React.useState(true)
+    const [error, setError] = React.useState<string | null>(null)
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = React.useState({})
     const [showExpiredModal, setShowExpiredModal] = React.useState(false)
+    const [searchValue, setSearchValue] = React.useState("")
+    const [editingObat, setEditingObat] = React.useState<PengelolaanObat | null>(null)
+    const [deletingObat, setDeletingObat] = React.useState<PengelolaanObat | null>(null)
+
+    // Function to fetch data from API
+    const fetchData = async () => {
+        try {
+            setLoading(true)
+            setError(null)
+            const response = await getKelolaObatData({
+                search: searchValue || undefined,
+                limit: 100 // Get more data for better UX
+            })
+
+            if (response.success) {
+                setData(response.data)
+            } else {
+                setError('Gagal memuat data')
+            }
+        } catch (err) {
+            console.error('Error fetching data:', err)
+            setError('Gagal memuat data obat')
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    // Initial data fetch
+    React.useEffect(() => {
+        fetchData()
+    }, [])
+
+    // Search with debounce
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            if (!loading) {
+                fetchData()
+            }
+        }, 500)
+
+        return () => clearTimeout(timer)
+    }, [searchValue])
 
     // Function to calculate days until expiry
     const getDaysUntilExpiry = (expiryDate: string) => {
@@ -168,35 +135,43 @@ export function DataTableDemo() {
 
     // Show modal automatically when there are expired or expiring medicines
     React.useEffect(() => {
-        if (expiredMedicines.length > 0 || expiringMedicines.length > 0) {
+        if (!loading && data.length > 0 && (expiredMedicines.length > 0 || expiringMedicines.length > 0)) {
             setShowExpiredModal(true)
         }
-    }, [expiredMedicines.length, expiringMedicines.length])
-
-    // Function to generate new batch number
-    const generateBatchNumber = () => {
-        return Math.floor(10000 + Math.random() * 90000).toString()
-    }
+    }, [expiredMedicines.length, expiringMedicines.length, loading, data.length])
 
     // Handle add new obat
-    const handleAdd = (newObat: Omit<PengelolaanObat, 'noBatch'>) => {
-        const obatWithBatch: PengelolaanObat = {
-            ...newObat,
-            noBatch: generateBatchNumber()
-        }
-        setData(prev => [...prev, obatWithBatch])
+    const handleAdd = async () => {
+        // Refresh data after add
+        await fetchData()
     }
 
     // Handle edit obat
-    const handleEdit = (noBatch: string, updatedObat: Omit<PengelolaanObat, 'noBatch'>) => {
-        setData(prev => prev.map(obat =>
-            obat.noBatch === noBatch ? { ...updatedObat, noBatch } : obat
-        ))
+    const handleEdit = async () => {
+        // Refresh data after edit
+        await fetchData()
     }
 
     // Handle delete obat
-    const handleDelete = (noBatch: string) => {
-        setData(prev => prev.filter(obat => obat.noBatch !== noBatch))
+    const handleDelete = async (noBatch: string) => {
+        try {
+            await deleteKelolaObat(noBatch)
+            // Refresh data after delete
+            await fetchData()
+        } catch (error) {
+            console.error('Error deleting obat:', error)
+            alert('Gagal menghapus obat')
+        }
+    }
+
+    // Format tanggal untuk display
+    const formatDate = (dateString: string) => {
+        try {
+            const date = new Date(dateString)
+            return date.toLocaleDateString('id-ID')
+        } catch {
+            return dateString
+        }
     }
 
     const columns: ColumnDef<PengelolaanObat>[] = [
@@ -209,17 +184,21 @@ export function DataTableDemo() {
         },
         {
             accessorKey: "nama",
-            header: () => <div>Nama</div>,
+            header: "Nama Obat",
             cell: ({ row }) => (
                 <div className="font-medium">{row.getValue("nama")}</div>
             )
         },
         {
             accessorKey: "totalStok",
-            header: () => <div className="text-center">Total Stok</div>,
+            header: "Total Stok",
             cell: ({ row }) => {
-                const stok = parseFloat(row.getValue("totalStok"))
-                return <div className="text-center font-medium">{stok}</div>
+                const stock = row.getValue("totalStok") as number
+                return (
+                    <div className="flex items-center gap-2">
+                        <span className="font-medium">{stock}</span>
+                    </div>
+                )
             },
         },
         {
@@ -232,11 +211,14 @@ export function DataTableDemo() {
         {
             accessorKey: "tanggalExpired",
             header: "Tanggal Expired",
-            cell: ({ row }) => (
-                <div>
-                    {row.getValue("tanggalExpired")}
-                </div>
-            ),
+            cell: ({ row }) => {
+                const expiryDate = row.getValue("tanggalExpired") as string
+                return (
+                    <div className="flex items-center gap-2">
+                        <span>{formatDate(expiryDate)}</span>
+                    </div>
+                )
+            },
         },
         {
             accessorKey: "supplier",
@@ -253,9 +235,29 @@ export function DataTableDemo() {
                 const obat = row.original
 
                 return (
-                    <div className="flex space-x-2">
-                        <DataEdit obat={obat} onEdit={handleEdit} />
-                        <DataDelete obat={obat} onDelete={handleDelete} />
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                                e.preventDefault()
+                                setEditingObat(obat)
+                            }}
+                            className="h-8 w-8 p-0 hover:bg-blue-50"
+                        >
+                            <Edit className="h-4 w-4 text-blue-600" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                                e.preventDefault()
+                                setDeletingObat(obat)
+                            }}
+                            className="h-8 w-8 p-0 hover:bg-red-50"
+                        >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                        </Button>
                     </div>
                 )
             },
@@ -281,31 +283,65 @@ export function DataTableDemo() {
         },
     })
 
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="flex items-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <span>Memuat data obat...</span>
+                </div>
+            </div>
+        )
+    }
+
+    if (error) {
+        return (
+            <div className="flex items-center justify-center min-h-[400px]">
+                <div className="flex items-center gap-2 text-red-600">
+                    <AlertTriangle className="h-6 w-6" />
+                    <span>{error}</span>
+                    <Button onClick={fetchData} size="sm" variant="outline">
+                        Coba Lagi
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="w-full space-y-4">
-            {/* Header dengan tombol Tambah Obat */}
+            {/* Header */}
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold mb-4">Pengelolaan Obat</h1>
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight">Kelola Obat</h1>
+                    <p className="text-muted-foreground">
+                        Kelola data obat dan pantau stok serta tanggal kedaluwarsa
+                    </p>
+                </div>
+            </div>
+
+            {/* Search and Add */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                    <Input
+                        placeholder="Cari nama obat, batch, atau supplier..."
+                        value={searchValue}
+                        onChange={(e) => setSearchValue(e.target.value)}
+                        className="max-w-sm"
+                    />
+                </div>
                 <DataAdd onAdd={handleAdd} />
             </div>
 
-            {/* Expired Notification Modal */}
-            <ExpiredNotification
-                isOpen={showExpiredModal}
-                onClose={() => setShowExpiredModal(false)}
-                expiredMedicines={expiredMedicines}
-                expiringMedicines={expiringMedicines}
-            />
-
             {/* Table */}
-            <div className="rounded-md border bg-white">
+            <div className="rounded-md border">
                 <Table>
-                    <TableHeader className="bg-gray-50">
+                    <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
                                     return (
-                                        <TableHead key={header.id} className="font-semibold text-gray-700">
+                                        <TableHead key={header.id}>
                                             {header.isPlaceholder
                                                 ? null
                                                 : flexRender(
@@ -324,10 +360,9 @@ export function DataTableDemo() {
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
-                                    className="hover:bg-gray-50"
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className="py-3">
+                                        <TableCell key={cell.id}>
                                             {flexRender(
                                                 cell.column.columnDef.cell,
                                                 cell.getContext()
@@ -342,7 +377,7 @@ export function DataTableDemo() {
                                     colSpan={columns.length}
                                     className="h-24 text-center"
                                 >
-                                    No results.
+                                    Tidak ada data obat.
                                 </TableCell>
                             </TableRow>
                         )}
@@ -352,9 +387,9 @@ export function DataTableDemo() {
 
             {/* Pagination */}
             <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="text-muted-foreground flex-1 text-sm">
-                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                    {table.getFilteredRowModel().rows.length} row(s) selected.
+                <div className="flex-1 text-sm text-muted-foreground">
+                    {table.getFilteredSelectedRowModel().rows.length} dari{" "}
+                    {table.getFilteredRowModel().rows.length} baris dipilih.
                 </div>
                 <div className="space-x-2">
                     <Button
@@ -375,6 +410,40 @@ export function DataTableDemo() {
                     </Button>
                 </div>
             </div>
+
+            {/* Expired Medicine Notification */}
+            <ExpiredNotification
+                expiredMedicines={expiredMedicines}
+                expiringMedicines={expiringMedicines}
+                isOpen={showExpiredModal}
+                onClose={() => setShowExpiredModal(false)}
+            />
+
+            {/* Edit Dialog */}
+            {editingObat && (
+                <DataEdit
+                    obat={editingObat}
+                    onEdit={() => {
+                        handleEdit()
+                        setEditingObat(null)
+                    }}
+                    open={!!editingObat}
+                    onOpenChange={(open: boolean) => !open && setEditingObat(null)}
+                />
+            )}
+
+            {/* Delete Dialog */}
+            {deletingObat && (
+                <DataDelete
+                    obat={deletingObat}
+                    onDelete={(noBatch: string) => {
+                        handleDelete(noBatch)
+                        setDeletingObat(null)
+                    }}
+                    open={!!deletingObat}
+                    onOpenChange={(open: boolean) => !open && setDeletingObat(null)}
+                />
+            )}
         </div>
     )
 }

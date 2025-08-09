@@ -11,15 +11,17 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog"
-import { Trash2, AlertTriangle } from "lucide-react"
+import { Trash2, AlertTriangle, Loader2 } from "lucide-react"
 import { PengelolaanObat } from "./data-table"
 
 interface DataDeleteProps {
     obat: PengelolaanObat
     onDelete: (noBatch: string) => void
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
 }
 
-export function DataDelete({ obat, onDelete }: DataDeleteProps) {
+export function DataDelete({ obat, onDelete, open: externalOpen, onOpenChange: externalOnOpenChange }: DataDeleteProps) {
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
 
@@ -27,11 +29,11 @@ export function DataDelete({ obat, onDelete }: DataDeleteProps) {
         setIsLoading(true)
 
         try {
-            // Simulate API call delay
-            await new Promise(resolve => setTimeout(resolve, 1000))
-
-            onDelete(obat.noBatch)
+            await onDelete(obat.noBatch)
             setOpen(false)
+            if (externalOnOpenChange) {
+                externalOnOpenChange(false)
+            }
         } catch (error) {
             console.error("Error deleting obat:", error)
             alert("Terjadi kesalahan saat menghapus obat!")
@@ -41,16 +43,18 @@ export function DataDelete({ obat, onDelete }: DataDeleteProps) {
     }
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
-                >
-                    <Trash2 className="h-4 w-4" />
-                </Button>
-            </DialogTrigger>
+        <Dialog open={externalOpen !== undefined ? externalOpen : open} onOpenChange={externalOnOpenChange || setOpen}>
+            {externalOpen === undefined && (
+                <DialogTrigger asChild>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </DialogTrigger>
+            )}
             <DialogContent className="sm:max-w-[450px]">
                 <DialogHeader className="text-center pb-4">
                     <div className="flex justify-center mb-4">
@@ -59,13 +63,21 @@ export function DataDelete({ obat, onDelete }: DataDeleteProps) {
                         </div>
                     </div>
                     <DialogTitle className="text-2xl font-bold text-gray-900">
-                        Hapus Data Obat {obat.nama}?
+                        Hapus Data Obat?
                     </DialogTitle>
                 </DialogHeader>
 
                 <div className="text-center py-4">
-                    <p className="text-base text-gray-600 mb-4">
-                        Data Obat dengan <strong>No. Batch {obat.noBatch}</strong> yang anda hapus tidak dapat dikembalikan.
+                    <p className="text-base text-gray-600 mb-2">
+                        Anda akan menghapus obat:
+                    </p>
+                    <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                        <p className="font-semibold text-lg">{obat.nama}</p>
+                        <p className="text-sm text-gray-600">No. Batch: {obat.noBatch}</p>
+                        <p className="text-sm text-gray-600">Stok: {obat.totalStok} {obat.satuan}</p>
+                    </div>
+                    <p className="text-sm text-red-600 font-medium">
+                        Data yang dihapus tidak dapat dikembalikan.
                     </p>
                 </div>
 
@@ -85,7 +97,14 @@ export function DataDelete({ obat, onDelete }: DataDeleteProps) {
                         disabled={isLoading}
                         className="h-12 px-8 text-base bg-red-600 hover:bg-red-700 text-white flex-1"
                     >
-                        {isLoading ? "Menghapus..." : "Hapus"}
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Menghapus...
+                            </>
+                        ) : (
+                            "Hapus"
+                        )}
                     </Button>
                 </DialogFooter>
             </DialogContent>

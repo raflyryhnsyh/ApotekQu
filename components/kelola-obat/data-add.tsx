@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -20,37 +20,89 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { Plus } from "lucide-react"
-import { PengelolaanObat } from "./data-table"
+import { Textarea } from "@/components/ui/textarea"
+import { Plus, Loader2 } from "lucide-react"
+import { createKelolaObat } from "@/lib/api/kelola-obat"
 
 interface DataAddProps {
-    onAdd: (obat: Omit<PengelolaanObat, 'noBatch'>) => void
+    onAdd: () => void
+}
+
+interface Supplier {
+    id: string
+    nama_supplier: string
+    alamat?: string
+}
+
+interface Obat {
+    id: string
+    nama_obat: string
+    kategori?: string
+    komposisi?: string
 }
 
 export function DataAdd({ onAdd }: DataAddProps) {
     const [open, setOpen] = useState(false)
     const [formData, setFormData] = useState({
-        nama: "",
-        noBatch: "",
-        tanggalExpired: "",
-        totalStok: "",
-        supplier: ""
+        nama_obat: "",
+        komposisi: "",
+        kategori: "",
+        nomor_batch: "",
+        kadaluarsa: "",
+        stok_sekarang: "",
+        satuan: "",
+        harga_jual: "",
+        supplier_id: ""
     })
     const [isLoading, setIsLoading] = useState(false)
+    const [suppliers, setSuppliers] = useState<Supplier[]>([])
+    const [obatList, setObatList] = useState<Obat[]>([])
+    const [loadingSuppliers, setLoadingSuppliers] = useState(false)
+    const [loadingObat, setLoadingObat] = useState(false)
 
-    // Sample obat options
-    const obatOptions = [
-        "Aspirin",
-        "Ibuprofen",
-        "Paracetamol",
-        "Amoxicillin",
-        "Loratadine",
-        "Omeprazole",
-        "Simvastatin",
-        "Metformin",
-        "Ciprofloxacin",
-        "Albuterol"
-    ]
+    // Fetch suppliers and obat list when dialog opens
+    useEffect(() => {
+        if (open && suppliers.length === 0) {
+            fetchSuppliers()
+        }
+        if (open && obatList.length === 0) {
+            fetchObatList()
+        }
+    }, [open])
+
+    const fetchSuppliers = async () => {
+        try {
+            setLoadingSuppliers(true)
+            const response = await fetch('/api/suppliers')
+            if (response.ok) {
+                const result = await response.json()
+                if (result.success) {
+                    setSuppliers(result.data)
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching suppliers:', error)
+        } finally {
+            setLoadingSuppliers(false)
+        }
+    }
+
+    const fetchObatList = async () => {
+        try {
+            setLoadingObat(true)
+            const response = await fetch('/api/obat')
+            if (response.ok) {
+                const result = await response.json()
+                if (result.success) {
+                    setObatList(result.data)
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching obat list:', error)
+        } finally {
+            setLoadingObat(false)
+        }
+    }
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -58,49 +110,55 @@ export function DataAdd({ onAdd }: DataAddProps) {
 
         try {
             // Validasi form
-            if (!formData.nama || !formData.noBatch || !formData.tanggalExpired || !formData.totalStok || !formData.supplier) {
-                alert("Semua field harus diisi!")
+            if (!formData.nama_obat || !formData.nomor_batch || !formData.kadaluarsa ||
+                !formData.stok_sekarang || !formData.satuan || !formData.supplier_id) {
+                alert("Semua field wajib harus diisi!")
                 return
             }
 
-            // Convert stok to number
-            const totalStok = parseInt(formData.totalStok)
-            if (isNaN(totalStok) || totalStok <= 0) {
-                alert("Total stok harus berupa angka yang valid!")
+            // Convert stok and harga to number
+            const stok = parseInt(formData.stok_sekarang)
+            const harga = parseFloat(formData.harga_jual) || 0
+
+            if (isNaN(stok) || stok < 0) {
+                alert("Stok harus berupa angka yang valid!")
                 return
             }
 
-            // Set satuan based on obat name (simplified logic)
-            let satuan = "Tablets"
-            if (formData.nama.includes("Capsule") || formData.nama === "Ibuprofen" || formData.nama === "Amoxicillin" || formData.nama === "Omeprazole") {
-                satuan = "Capsules"
-            } else if (formData.nama === "Albuterol") {
-                satuan = "Inhaler"
+            const dataToSubmit = {
+                nama_obat: formData.nama_obat.trim(),
+                komposisi: formData.komposisi.trim() || undefined,
+                kategori: formData.kategori || undefined,
+                nomor_batch: formData.nomor_batch.trim(),
+                kadaluarsa: formData.kadaluarsa,
+                stok_sekarang: stok,
+                satuan: formData.satuan,
+                harga_jual: harga,
+                supplier_id: formData.supplier_id
             }
 
-            const newObat: Omit<PengelolaanObat, 'noBatch'> = {
-                nama: formData.nama,
-                totalStok: totalStok,
-                satuan: satuan,
-                tanggalExpired: formData.tanggalExpired,
-                supplier: formData.supplier
-            }
-
-            onAdd(newObat)
+            await createKelolaObat(dataToSubmit)
 
             // Reset form
             setFormData({
-                nama: "",
-                noBatch: "",
-                tanggalExpired: "",
-                totalStok: "",
-                supplier: ""
+                nama_obat: "",
+                komposisi: "",
+                kategori: "",
+                nomor_batch: "",
+                kadaluarsa: "",
+                stok_sekarang: "",
+                satuan: "",
+                harga_jual: "",
+                supplier_id: ""
             })
 
             setOpen(false)
-        } catch (error) {
+            onAdd() // Refresh parent data
+            alert("Obat berhasil ditambahkan!")
+
+        } catch (error: any) {
             console.error("Error adding obat:", error)
-            alert("Terjadi kesalahan saat menambah obat!")
+            alert(error.message || "Terjadi kesalahan saat menambah obat!")
         } finally {
             setIsLoading(false)
         }
@@ -121,93 +179,201 @@ export function DataAdd({ onAdd }: DataAddProps) {
                     Tambah Obat
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold text-left">
-                        Tambah Obat
+                        Tambah Obat Baru
                     </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit}>
                     <div className="grid gap-6 py-6">
+                        {/* Nama Obat */}
                         <div className="grid gap-3">
-                            <Label htmlFor="pilih-obat" className="text-base font-semibold text-gray-900">
-                                Pilih Obat
+                            <Label htmlFor="nama-obat" className="text-base font-medium">
+                                Nama Obat <span className="text-red-500">*</span>
                             </Label>
                             <Select
-                                value={formData.nama}
-                                onValueChange={(value) => handleInputChange("nama", value)}
+                                value={formData.nama_obat}
+                                onValueChange={(value) => handleInputChange("nama_obat", value)}
                                 required
+                                disabled={loadingObat}
                             >
                                 <SelectTrigger className="h-12 text-base border-gray-300 rounded-lg">
-                                    <SelectValue placeholder="Pilih Obat" />
+                                    <SelectValue placeholder={
+                                        loadingObat ? "Memuat daftar obat..." : "Pilih nama obat"
+                                    } />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {obatOptions.map((obat) => (
-                                        <SelectItem key={obat} value={obat}>
-                                            {obat}
+                                    {loadingObat ? (
+                                        <SelectItem value="loading" disabled>
+                                            <div className="flex items-center gap-2">
+                                                <Loader2 className="h-4 w-4 animate-spin" />
+                                                Memuat obat...
+                                            </div>
                                         </SelectItem>
-                                    ))}
+                                    ) : obatList.length > 0 ? (
+                                        obatList.map((obat) => (
+                                            <SelectItem key={obat.id} value={obat.nama_obat}>
+                                                {obat.nama_obat}
+                                            </SelectItem>
+                                        ))
+                                    ) : (
+                                        <SelectItem value="no-data" disabled>
+                                            Tidak ada data obat
+                                        </SelectItem>
+                                    )}
                                 </SelectContent>
                             </Select>
                         </div>
 
+                        {/* Komposisi */}
                         <div className="grid gap-3">
-                            <Label htmlFor="nomor-batch" className="text-base font-semibold text-gray-900">
-                                Nomor Batch
+                            <Label htmlFor="komposisi" className="text-base font-medium">
+                                Komposisi
                             </Label>
-                            <Input
-                                id="nomor-batch"
-                                value={formData.noBatch}
-                                onChange={(e) => handleInputChange("noBatch", e.target.value)}
-                                placeholder="Masukan nomor batch obat"
-                                className="h-12 text-base border-gray-300 rounded-lg"
-                                required
+                            <Textarea
+                                id="komposisi"
+                                value={formData.komposisi}
+                                onChange={(e) => handleInputChange("komposisi", e.target.value)}
+                                placeholder="Masukkan komposisi obat"
+                                className="text-base border-gray-300 rounded-lg"
+                                rows={3}
                             />
                         </div>
 
+                        {/* Kategori */}
                         <div className="grid gap-3">
-                            <Label htmlFor="tanggal-expired" className="text-base font-semibold text-gray-900">
-                                Tanggal Expired
+                            <Label htmlFor="kategori" className="text-base font-medium">
+                                Kategori
                             </Label>
-                            <Input
-                                id="tanggal-expired"
-                                type="date"
-                                value={formData.tanggalExpired}
-                                onChange={(e) => handleInputChange("tanggalExpired", e.target.value)}
-                                placeholder="Masukan tanggal expired"
-                                className="h-12 text-base border-gray-300 rounded-lg"
-                                required
-                            />
+                            <Select
+                                value={formData.kategori}
+                                onValueChange={(value) => handleInputChange("kategori", value)}
+                            >
+                                <SelectTrigger className="h-12 text-base border-gray-300 rounded-lg">
+                                    <SelectValue placeholder="Pilih kategori obat" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="obat keras">Obat Keras</SelectItem>
+                                    <SelectItem value="obat bebas">Obat Bebas</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
-                        <div className="grid gap-3">
-                            <Label htmlFor="total-stok" className="text-base font-semibold text-gray-900">
-                                Total Stok
-                            </Label>
-                            <Input
-                                id="total-stok"
-                                type="number"
-                                value={formData.totalStok}
-                                onChange={(e) => handleInputChange("totalStok", e.target.value)}
-                                placeholder="Masukan total stok"
-                                className="h-12 text-base border-gray-300 rounded-lg"
-                                min="1"
-                                required
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Nomor Batch */}
+                            <div className="grid gap-3">
+                                <Label htmlFor="nomor-batch" className="text-base font-medium">
+                                    Nomor Batch <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="nomor-batch"
+                                    value={formData.nomor_batch}
+                                    onChange={(e) => handleInputChange("nomor_batch", e.target.value)}
+                                    placeholder="Masukkan nomor batch"
+                                    className="h-12 text-base border-gray-300 rounded-lg"
+                                    required
+                                />
+                            </div>
+
+                            {/* Tanggal Expired */}
+                            <div className="grid gap-3">
+                                <Label htmlFor="tanggal-expired" className="text-base font-medium">
+                                    Tanggal Expired <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="tanggal-expired"
+                                    type="date"
+                                    value={formData.kadaluarsa}
+                                    onChange={(e) => handleInputChange("kadaluarsa", e.target.value)}
+                                    className="h-12 text-base border-gray-300 rounded-lg"
+                                    required
+                                />
+                            </div>
                         </div>
 
-                        <div className="grid gap-3">
-                            <Label htmlFor="supplier" className="text-base font-semibold text-gray-900">
-                                Supplier
-                            </Label>
-                            <Input
-                                id="supplier"
-                                value={formData.supplier}
-                                onChange={(e) => handleInputChange("supplier", e.target.value)}
-                                placeholder="Masukan supplier obat"
-                                className="h-12 text-base border-gray-300 rounded-lg"
-                                required
-                            />
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Stok */}
+                            <div className="grid gap-3">
+                                <Label htmlFor="stok-sekarang" className="text-base font-medium">
+                                    Stok <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                    id="stok-sekarang"
+                                    type="number"
+                                    value={formData.stok_sekarang}
+                                    onChange={(e) => handleInputChange("stok_sekarang", e.target.value)}
+                                    placeholder="Masukkan jumlah stok"
+                                    className="h-12 text-base border-gray-300 rounded-lg"
+                                    min="0"
+                                    required
+                                />
+                            </div>
+
+                            {/* Satuan */}
+                            <div className="grid gap-3">
+                                <Label htmlFor="satuan" className="text-base font-medium">
+                                    Satuan <span className="text-red-500">*</span>
+                                </Label>
+                                <Select
+                                    value={formData.satuan}
+                                    onValueChange={(value) => handleInputChange("satuan", value)}
+                                    required
+                                >
+                                    <SelectTrigger className="h-12 text-base border-gray-300 rounded-lg">
+                                        <SelectValue placeholder="Pilih satuan" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="strip">Strip</SelectItem>
+                                        <SelectItem value="botol">Botol</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* Harga Jual */}
+                            <div className="grid gap-3">
+                                <Label htmlFor="harga-jual" className="text-base font-medium">
+                                    Harga Jual (Rp)
+                                </Label>
+                                <Input
+                                    id="harga-jual"
+                                    type="number"
+                                    value={formData.harga_jual}
+                                    onChange={(e) => handleInputChange("harga_jual", e.target.value)}
+                                    placeholder="Masukkan harga jual"
+                                    className="h-12 text-base border-gray-300 rounded-lg"
+                                    min="0"
+                                    step="0.01"
+                                />
+                            </div>
+
+                            {/* Supplier */}
+                            <div className="grid gap-3">
+                                <Label htmlFor="supplier" className="text-base font-medium">
+                                    Supplier <span className="text-red-500">*</span>
+                                </Label>
+                                <Select
+                                    value={formData.supplier_id}
+                                    onValueChange={(value) => handleInputChange("supplier_id", value)}
+                                    required
+                                    disabled={loadingSuppliers}
+                                >
+                                    <SelectTrigger className="h-12 text-base border-gray-300 rounded-lg">
+                                        <SelectValue placeholder={
+                                            loadingSuppliers ? "Memuat supplier..." : "Pilih supplier"
+                                        } />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {suppliers.map((supplier) => (
+                                            <SelectItem key={supplier.id} value={supplier.id}>
+                                                {supplier.nama_supplier}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </div>
                     </div>
 
@@ -217,16 +383,23 @@ export function DataAdd({ onAdd }: DataAddProps) {
                             variant="outline"
                             onClick={() => setOpen(false)}
                             disabled={isLoading}
-                            className="h-12 px-8 text-base border-gray-300 hover:bg-gray-50"
+                            className="h-12 px-8 text-base border-gray-300 hover:bg-gray-50 flex-1"
                         >
                             Batal
                         </Button>
                         <Button
                             type="submit"
-                            className="h-12 px-8 text-base bg-green-600 hover:bg-green-700"
                             disabled={isLoading}
+                            className="h-12 px-8 text-base bg-green-600 hover:bg-green-700 text-white flex-1"
                         >
-                            {isLoading ? "Menyimpan..." : "Simpan"}
+                            {isLoading ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Menyimpan...
+                                </>
+                            ) : (
+                                "Simpan Obat"
+                            )}
                         </Button>
                     </DialogFooter>
                 </form>

@@ -10,7 +10,7 @@ export async function PUT(
         const supabase = await createClient();
         const supabaseAdmin = createAdminClient();
         const body = await request.json();
-        const { id } = params;
+        const { id } = await params;
 
         // Validasi ID user dengan UUID format
         if (!id || !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(id)) {
@@ -175,7 +175,7 @@ export async function DELETE(
 ) {
     try {
         // Pastikan params di-resolve dengan benar
-        const { id } = params;
+        const { id } = await params;
 
         // Validasi awal
         if (!id) {

@@ -26,7 +26,7 @@ interface DataTableProps<T> {
     className?: string
 }
 
-export function DataTable<T extends Record<string, any>>({
+export function DataTable<T>({
     data,
     columns,
     emptyMessage = "Tidak ada data",
@@ -63,7 +63,7 @@ export function DataTable<T extends Record<string, any>>({
                                     >
                                         {column.render
                                             ? column.render(item, index)
-                                            : item[column.key]
+                                            : (item[column.key as keyof T] as React.ReactNode)
                                         }
                                     </TableCell>
                                 ))}

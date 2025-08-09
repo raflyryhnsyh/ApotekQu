@@ -41,7 +41,11 @@ export interface SalesReport {
         total_items_sold: number
         average_transaction: number
     }
-    grouped_data: Record<string, any>
+    grouped_data: Record<string, {
+        total_revenue: number;
+        total_transactions: number;
+        total_items_sold: number;
+    }>
     pagination: {
         page: number
         limit: number

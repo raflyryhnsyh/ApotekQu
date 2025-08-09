@@ -28,16 +28,16 @@ export const purchaseOrderApi = {
         const query = searchParams.toString()
         const endpoint = query ? `/reports/purchase?${query}` : '/reports/purchase'
 
-        return apiClient.get<PaginatedResponse<any>>(endpoint)
+        return apiClient.get<PaginatedResponse<PurchaseOrder>>(endpoint)
     },
 
     // Create new purchase order
     create: async (data: CreatePurchaseOrderData) => {
-        return apiClient.post<any>('/reports/purchase', data)
+        return apiClient.post<ApiResponse<PurchaseOrder>>('/reports/purchase', data)
     },
 
     // Get purchase order by ID
     getById: async (id: string) => {
-        return apiClient.get<any>(`/reports/purchase/${id}`)
+        return apiClient.get<ApiResponse<PurchaseOrder>>(`/reports/purchase/${id}`)
     }
 }

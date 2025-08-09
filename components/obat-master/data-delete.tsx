@@ -64,7 +64,7 @@ export default function DataDelete({ obat, onDelete }: DataDeleteProps) {
                 </DialogHeader>
                 <div className="py-4">
                     <p className="text-gray-700">
-                        Apakah Anda yakin ingin menghapus obat <span className="font-semibold">"{obat.nama_obat}"</span>?
+                        Apakah Anda yakin ingin menghapus obat <span className="font-semibold">&quot;{obat.nama_obat}&quot;</span>?
                     </p>
                     <p className="text-sm text-red-600 mt-2">
                         Data yang dihapus tidak dapat dikembalikan.

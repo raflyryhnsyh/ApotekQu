@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import type { PurchaseOrder, DetailPurchaseOrder, ApiResponse, PaginatedResponse } from '@/types/database'
+import type { ApiResponse, PaginatedResponse } from '@/types/database'
 
 // GET - Fetch all purchase orders with details
 export async function GET(request: NextRequest) {
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
             )
         }
 
-        const response: PaginatedResponse<any> = {
+        const response: PaginatedResponse<Record<string, unknown>> = {
             data: data || [],
             pagination: {
                 page,
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json({ success: true, data: response, error: null })
-    } catch (error) {
+    } catch {
         return NextResponse.json(
             { success: false, data: null, error: 'Internal server error' },
             { status: 500 }
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Insert detail items
-        const detailItems = items.map((item: any) => ({
+        const detailItems = items.map((item: Record<string, unknown>) => ({
             ...item,
             id_po: poData.id
         }))
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const response: ApiResponse<any> = {
+        const response: ApiResponse<Record<string, unknown>> = {
             success: true,
             data: {
                 purchase_order: poData,
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json(response, { status: 201 })
-    } catch (error) {
+    } catch {
         return NextResponse.json(
             { success: false, data: null, error: 'Internal server error' },
             { status: 500 }

@@ -15,7 +15,7 @@ export default function PenjualanPage() {
     const [productsLoading, setProductsLoading] = useState(false);
     const [transactionsLoading, setTransactionsLoading] = useState(false);
     const [products, setProducts] = useState<Product[]>([]);
-    const [productsWithStock, setProductsWithStock] = useState<any[]>([]);
+    const [productsWithStock, setProductsWithStock] = useState<Record<string, unknown>[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [selectedProductId, setSelectedProductId] = useState("");
     const [quantity, setQuantity] = useState(1);
@@ -144,7 +144,7 @@ export default function PenjualanPage() {
             setError(""); // Clear previous errors
 
             // Try to get products with stock first
-            let response = await penjualanAPI.getProductsWithStock();
+            const response = await penjualanAPI.getProductsWithStock();
 
             if (response.success && response.data) {
                 setProductsWithStock(response.data);
@@ -152,12 +152,12 @@ export default function PenjualanPage() {
                 // Transform kelola-obat data to simple product list for dropdown
                 const productMap = new Map();
 
-                response.data.forEach((item: any) => {
+                response.data.forEach((item: Record<string, unknown>) => {
                     if (!productMap.has(item.id_obat)) {
                         productMap.set(item.id_obat, {
                             id: item.id_obat,
                             name: item.nama,
-                            price: item.harga_jual || 0,
+                            price: (item.harga_jual as number) || 0,
                             stock: 0,
                             kategori: item.kategori,
                             komposisi: item.komposisi,
@@ -166,12 +166,12 @@ export default function PenjualanPage() {
                     }
 
                     const product = productMap.get(item.id_obat);
-                    product.stock += item.totalStok || 0;
+                    product.stock += (item.totalStok as number) || 0;
                     product.batches.push({
-                        nomor_batch: item.noBatch,
-                        stok_sekarang: item.totalStok,
-                        kadaluarsa: item.tanggalExpired,
-                        harga_jual: item.harga_jual
+                        nomor_batch: (item.noBatch as string) || '',
+                        stok_sekarang: (item.totalStok as number) || 0,
+                        kadaluarsa: (item.tanggalExpired as string) || '',
+                        harga_jual: (item.harga_jual as number) || 0
                     });
                 });
 
@@ -185,13 +185,13 @@ export default function PenjualanPage() {
 
                 if (basicResponse.success && basicResponse.data) {
                     // Use basic product data without detailed stock info
-                    const basicProducts = basicResponse.data.map((item: any) => ({
+                    const basicProducts = basicResponse.data.map((item: Product) => ({
                         id: item.id,
-                        name: item.nama_obat,
-                        price: item.harga || 0,
+                        name: item.name,
+                        price: item.price || 0,
                         stock: 100, // Default stock for basic products
-                        kategori: item.kategori,
-                        komposisi: item.komposisi
+                        kategori: item.kategori || '',
+                        komposisi: item.komposisi || ''
                     }));
 
                     setProducts(basicProducts);
@@ -359,8 +359,8 @@ export default function PenjualanPage() {
                 const saleItems = cart.map(item => {
                     // Find available batches for this product
                     const availableBatches = productsWithStock.filter(p =>
-                        p.id_obat === item.id &&
-                        p.totalStok > 0
+                        (p.id_obat as string) === item.id &&
+                        (p.totalStok as number) > 0
                     );
 
                     if (availableBatches.length === 0) {
@@ -369,32 +369,32 @@ export default function PenjualanPage() {
                     }
 
                     // Sort by expiry date (closest to expire first) to use FIFO
-                    availableBatches.sort((a, b) => new Date(a.tanggalExpired).getTime() - new Date(b.tanggalExpired).getTime());
+                    availableBatches.sort((a, b) => new Date(a.tanggalExpired as string).getTime() - new Date(b.tanggalExpired as string).getTime());
 
                     // Find a batch with sufficient stock
                     let selectedBatch = null;
-                    let remainingQuantity = item.quantity;
+                    const remainingQuantity = item.quantity;
 
                     for (const batch of availableBatches) {
-                        if (batch.totalStok >= remainingQuantity) {
+                        if ((batch.totalStok as number) >= remainingQuantity) {
                             selectedBatch = batch;
                             break;
                         }
                     }
 
                     if (!selectedBatch) {
-                        const totalAvailableStock = availableBatches.reduce((sum, b) => sum + b.totalStok, 0);
+                        const totalAvailableStock = availableBatches.reduce((sum, b) => sum + (b.totalStok as number), 0);
                         invalidItems.push(`${item.name} (stok tidak mencukupi: diminta ${item.quantity}, tersedia ${totalAvailableStock})`);
                         return null;
                     }
 
-                    console.log(`Item: ${item.name}, Product ID: ${item.id}, Selected Batch: ${selectedBatch.noBatch}, Available Stock: ${selectedBatch.totalStok}, Quantity: ${item.quantity}`);
+                    console.log(`Item: ${item.name}, Product ID: ${item.id}, Selected Batch: ${(selectedBatch.noBatch as string)}, Available Stock: ${(selectedBatch.totalStok as number)}, Quantity: ${item.quantity}`);
 
                     return {
                         id_obat: item.id,
                         jumlah_terjual: item.quantity,
                         harga: item.price,
-                        nomor_batch: selectedBatch.noBatch
+                        nomor_batch: selectedBatch.noBatch as string
                     };
                 }).filter(item => item !== null);
 

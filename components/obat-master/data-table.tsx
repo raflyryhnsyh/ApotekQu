@@ -36,7 +36,7 @@ export interface DataTableProps {
     loading: boolean
     onPageChange: (page: number) => void
     onSearch: (search: string) => void
-    onFilterChange: (filters: any) => void
+    onFilterChange: (filters: Partial<ObatFilters>) => void
     onRefresh: () => void
 }
 

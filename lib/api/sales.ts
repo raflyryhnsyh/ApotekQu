@@ -169,7 +169,13 @@ class SalesAPI {
             }>();
 
             salesData.forEach(sale => {
-                sale.detail_penjualan?.forEach((detail: any) => {
+                sale.detail_penjualan?.forEach((detail: DetailPenjualan & {
+                    obat?: {
+                        id: string;
+                        nama_obat: string;
+                        kategori: string;
+                    };
+                }) => {
                     if (!detail.obat) return;
 
                     const key = detail.obat.id;

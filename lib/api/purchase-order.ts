@@ -76,7 +76,13 @@ export const purchaseOrderService = {
     async create(data: CreatePurchaseOrder) {
         return apiClient.post<{
             purchase_order: PurchaseOrder
-            details: any[]
+            details: Array<{
+                id: string;
+                jumlah: number;
+                harga: number;
+                id_po: string;
+                id_pp: string;
+            }>
         }>('/reports/purchase', data)
     }
 }

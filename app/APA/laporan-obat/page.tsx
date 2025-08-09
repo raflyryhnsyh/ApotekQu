@@ -402,10 +402,10 @@ export default function LaporanPage() {
           totalPembelian: number;
         }>();
 
-        response.data.data.forEach((purchase: any) => {
+        response.data.data.forEach((purchase: PurchaseOrderResponse) => {
           console.log('Processing purchase:', purchase.id, 'with details:', purchase.detail_purchase_order?.length || 0);
 
-          purchase.detail_purchase_order?.forEach((detail: any) => {
+          purchase.detail_purchase_order?.forEach((detail) => {
             console.log('Detail structure:', detail);
 
             // Check multiple possible data structures

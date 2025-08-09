@@ -90,7 +90,7 @@ export async function GET(
             nama_obat: obatData.nama_obat,
             komposisi: obatData.komposisi,
             kategori: obatData.kategori,
-            detail_obat: []
+            detail_obat: formattedDetailObat
         };
 
         return NextResponse.json({
@@ -143,21 +143,14 @@ export async function PUT(
         }
 
         // Update obat
-        const { data: obatData, error: obatError } = await supabase
+        const { error: obatError } = await supabase
             .from('obat')
             .update({
                 nama_obat,
                 komposisi,
                 kategori
             })
-            .eq('id', id)
-            .select(`
-                id,
-                nama_obat,
-                komposisi,
-                kategori
-            `)
-            .single();
+            .eq('id', id);
 
         if (obatError) {
             console.error('Error updating obat:', obatError);
@@ -169,7 +162,7 @@ export async function PUT(
 
         // Update detail_obat if provided
         if (satuan || harga_jual || nomor_batch || kadaluarsa || stok_sekarang !== undefined) {
-            const updateData: any = {};
+            const updateData: Record<string, unknown> = {};
             if (satuan) updateData.satuan = satuan;
             if (harga_jual) updateData.harga_jual = harga_jual;
             if (nomor_batch) updateData.nomor_batch = nomor_batch;

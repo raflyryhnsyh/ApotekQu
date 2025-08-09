@@ -30,13 +30,13 @@ export async function GET(request: NextRequest) {
         }
 
         // Format the data
-        const formattedData = data.map((item: any) => ({
+        const formattedData = data.map((item: Record<string, unknown>) => ({
             id: item.id,
             nama: item.full_name,
-            username: item.email?.replace('@apotekqu.com', '') || '',
+            username: (item.email as string)?.replace('@apotekqu.com', '') || '',
             email: item.email,
             role: item.role,
-            tanggal_dibuat: new Date(item.dibuat_pada).toLocaleDateString('id-ID')
+            tanggal_dibuat: new Date(item.dibuat_pada as string).toLocaleDateString('id-ID')
         }));
 
         return NextResponse.json({
@@ -56,7 +56,6 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
     try {
-        const supabase = await createClient();
         const supabaseAdmin = createAdminClient();
         const body = await request.json();
 

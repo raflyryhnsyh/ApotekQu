@@ -81,7 +81,6 @@ export async function PUT(
         };
 
         // Mulai transaction-like updates
-        let authUser = null;
         let profileData = null;
 
         // 1. Update auth data jika diperlukan (email/password)
@@ -106,7 +105,6 @@ export async function PUT(
                     { status: 400 }
                 );
             }
-            authUser = user.user;
         }
 
         // 2. Update profile data

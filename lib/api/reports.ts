@@ -14,12 +14,27 @@ export interface DashboardStats {
         expiring_medicines_count: number
         low_stock_medicines_count: number
     }
-    expiring_medicines: any[]
-    low_stock_medicines: any[]
+    expiring_medicines: Array<{
+        id: string;
+        nama_obat: string;
+        tanggal_expired: string;
+        stok_sekarang: number;
+    }>
+    low_stock_medicines: Array<{
+        id: string;
+        nama_obat: string;
+        stok_sekarang: number;
+        stok_minimum: number;
+    }>
 }
 
 export interface SalesReport {
-    data: any[]
+    data: Array<{
+        id: string;
+        dibuat_pada: string;
+        total: number;
+        diproses_oleh: string;
+    }>
     summary: {
         total_revenue: number
         total_transactions: number

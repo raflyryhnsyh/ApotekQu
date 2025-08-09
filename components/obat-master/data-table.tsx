@@ -22,12 +22,11 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import DataEdit from "./data-edit"
 import DataDelete from "./data-delete"
 import { ObatResponse, ObatFilters } from "@/lib/api/obat-management"
-import { Edit, Trash2, Search, RefreshCw, Package, AlertTriangle } from "lucide-react"
+import { Package } from "lucide-react"
 
 export interface DataTableProps {
     data: ObatResponse[]

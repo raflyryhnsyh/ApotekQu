@@ -50,16 +50,15 @@ export function ExpiredNotification({
                     </p>
 
                     <div className="space-y-4">
-                        {allMedicines.map((medicine, index) => {
+                        {allMedicines.map((medicine) => {
                             const isExpired = medicine.daysUntilExpiry < 0
-                            const isExpiringSoon = medicine.daysUntilExpiry <= 30 && medicine.daysUntilExpiry >= 0
 
                             return (
                                 <div
                                     key={medicine.noBatch}
                                     className={`p-4 rounded-lg border-l-4 ${isExpired
-                                            ? 'bg-red-50 border-l-red-500'
-                                            : 'bg-yellow-50 border-l-yellow-500'
+                                        ? 'bg-red-50 border-l-red-500'
+                                        : 'bg-yellow-50 border-l-yellow-500'
                                         }`}
                                 >
                                     <div className="flex justify-between items-start">

@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import Image from 'next/image';
 import ObatCardButton from './obatcardbutton';
 
 interface ObatCardProps {
@@ -25,12 +26,18 @@ const ObatCard: React.FC<ObatCardProps> = ({
     onDecrement,
 }) => {
     return (
-                // 1. Mengubah gaya kartu: lebih rounded, padding lebih besar
+        // 1. Mengubah gaya kartu: lebih rounded, padding lebih besar
         <div className="flex h-full flex-col rounded-2xl bg-white p-4 shadow-sm border">
             {/* Gambar produk */}
             <div className="aspect-square w-full rounded-xl bg-gray-200">
-                {/* Anda bisa menaruh <img> di sini jika sudah ada URL gambar */}
-                <img src={gambar} alt={nama} className="h-full w-full object-cover rounded-xl" />
+                {/* Next.js Image component for optimized images */}
+                <Image
+                    src={gambar}
+                    alt={nama}
+                    width={200}
+                    height={200}
+                    className="h-full w-full object-cover rounded-xl"
+                />
             </div>
 
             {/* 2. Konten utama dibuat flex-1 agar tombol bisa didorong ke bawah */}

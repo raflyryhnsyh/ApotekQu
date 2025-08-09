@@ -2,7 +2,7 @@
 
 import { DataTableDemo } from '@/components/obat-master/data-table';
 import { DataAdd } from '@/components/obat-master/data-add';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { fetchObat, ObatResponse, ObatFilters } from '@/lib/api/obat-management';
 
 export default function ObatMasterPage() {
@@ -15,7 +15,7 @@ export default function ObatMasterPage() {
         limit: 10
     });
 
-    const fetchObatData = async () => {
+    const fetchObatData = useCallback(async () => {
         try {
             setLoading(true);
             console.log('Fetching obat data with filters:', filters);
@@ -31,11 +31,11 @@ export default function ObatMasterPage() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [filters]);
 
     useEffect(() => {
         fetchObatData();
-    }, [filters]);
+    }, [fetchObatData]);
 
     const handlePageChange = (page: number) => {
         setFilters(prev => ({ ...prev, page }));

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -60,17 +60,7 @@ export function DataAdd({ onAdd }: DataAddProps) {
     const [loadingSuppliers, setLoadingSuppliers] = useState(false)
     const [loadingObat, setLoadingObat] = useState(false)
 
-    // Fetch suppliers and obat list when dialog opens
-    useEffect(() => {
-        if (open && suppliers.length === 0) {
-            fetchSuppliers()
-        }
-        if (open && obatList.length === 0) {
-            fetchObatList()
-        }
-    }, [open])
-
-    const fetchSuppliers = async () => {
+    const fetchSuppliers = useCallback(async () => {
         try {
             setLoadingSuppliers(true)
             const response = await fetch('/api/suppliers')
@@ -85,9 +75,9 @@ export function DataAdd({ onAdd }: DataAddProps) {
         } finally {
             setLoadingSuppliers(false)
         }
-    }
+    }, [])
 
-    const fetchObatList = async () => {
+    const fetchObatList = useCallback(async () => {
         try {
             setLoadingObat(true)
             const response = await fetch('/api/obat')
@@ -102,7 +92,17 @@ export function DataAdd({ onAdd }: DataAddProps) {
         } finally {
             setLoadingObat(false)
         }
-    }
+    }, [])
+
+    // Fetch suppliers and obat list when dialog opens
+    useEffect(() => {
+        if (open && suppliers.length === 0) {
+            fetchSuppliers()
+        }
+        if (open && obatList.length === 0) {
+            fetchObatList()
+        }
+    }, [open, suppliers.length, obatList.length, fetchSuppliers, fetchObatList])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()

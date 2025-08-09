@@ -13,7 +13,7 @@ import {
     useReactTable,
     VisibilityState,
 } from "@tanstack/react-table"
-import { ArrowUpDown, Loader2, AlertTriangle, Edit, Trash2 } from "lucide-react"
+import { Loader2, AlertTriangle, Edit, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,7 +25,6 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { DataAdd } from "./data-add"
 import { DataEdit } from "./data-edit"
 import { DataDelete } from "./data-delete"
@@ -59,7 +58,7 @@ export function DataTableDemo() {
     const [deletingObat, setDeletingObat] = React.useState<PengelolaanObat | null>(null)
 
     // Function to fetch data from API
-    const fetchData = async () => {
+    const fetchData = React.useCallback(async () => {
         try {
             setLoading(true)
             setError(null)
@@ -79,12 +78,12 @@ export function DataTableDemo() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [searchValue])
 
     // Initial data fetch
     React.useEffect(() => {
         fetchData()
-    }, [])
+    }, [fetchData])
 
     // Search with debounce
     React.useEffect(() => {
@@ -95,7 +94,7 @@ export function DataTableDemo() {
         }, 500)
 
         return () => clearTimeout(timer)
-    }, [searchValue])
+    }, [searchValue, fetchData, loading])
 
     // Function to calculate days until expiry
     const getDaysUntilExpiry = (expiryDate: string) => {

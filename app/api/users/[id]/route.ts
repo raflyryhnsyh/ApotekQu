@@ -4,7 +4,7 @@ import { createAdminClient } from '@/utils/supabase/admin';
 
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const supabase = await createClient();
@@ -85,7 +85,7 @@ export async function PUT(
 
         // 1. Update auth data jika diperlukan (email/password)
         if (updates.auth && (updates.auth.email || updates.auth.password)) {
-            const { data: user, error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+            const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
                 id,
                 updates.auth
             );
@@ -169,7 +169,7 @@ export async function PUT(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         // Pastikan params di-resolve dengan benar

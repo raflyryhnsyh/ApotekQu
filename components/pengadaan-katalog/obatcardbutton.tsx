@@ -1,12 +1,11 @@
 "use client";
-import React, { useState } from 'react';
+import React from 'react';
 
 interface ObatCardButtonProps {
     count: number;
     onAdd: () => void;
     onIncrement: () => void;
     onDecrement: () => void;
-    onAddToCart?: () => void;
 }
 
 const ObatCardButton: React.FC<ObatCardButtonProps> = ({
@@ -14,7 +13,6 @@ const ObatCardButton: React.FC<ObatCardButtonProps> = ({
     onAdd,
     onIncrement,
     onDecrement,
-    onAddToCart
 }) => {
     return (
         <div suppressHydrationWarning>

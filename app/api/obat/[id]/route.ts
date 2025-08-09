@@ -263,26 +263,6 @@ export async function DELETE(
             );
         }
 
-        // Check if obat exists
-        const { data: existingObat, error: checkError } = await supabase
-            .from('obat')
-            .select('id, nama_obat')
-            .eq('id', id)
-            .single();
-
-        if (checkError) {
-            if (checkError.code === 'PGRST116') {
-                return NextResponse.json(
-                    { error: 'Obat tidak ditemukan' },
-                    { status: 404 }
-                );
-            }
-            return NextResponse.json(
-                { error: 'Gagal mengecek obat', details: checkError.message },
-                { status: 500 }
-            );
-        }
-
         // Check if there are any detail_obat records
         const { data: detailObat, error: detailCheckError } = await supabase
             .from('detail_obat')

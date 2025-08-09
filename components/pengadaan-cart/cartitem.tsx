@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { QuantityButton } from "./quantitybutton";
 import { useCartStore } from "@/app/pegawai/pengadaan/buat-po/usecartstore";
 

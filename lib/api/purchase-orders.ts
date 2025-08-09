@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { PurchaseOrder, DetailPurchaseOrder, ApiResponse, PaginatedResponse, PaginationParams } from '@/types/database'
+import type { PurchaseOrder, ApiResponse, PaginatedResponse, PaginationParams } from '@/types/database'
 
 export interface CreatePurchaseOrderData {
     id_supplier: string

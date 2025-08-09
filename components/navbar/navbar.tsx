@@ -1,8 +1,6 @@
-import { Button } from "@/components/ui/button";
 import { Logo } from "./logo";
 import { NavMenu } from "./nav-menu";
 import { NavigationSheet } from "./nav-sheet";
-import { User } from "lucide-react";
 import { UserDropdown } from "./user-dropdown";
 
 const NavbarPage = () => {

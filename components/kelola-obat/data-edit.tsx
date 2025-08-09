@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -68,21 +68,8 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
     const [loadingObat, setLoadingObat] = useState(false)
     const [loadingData, setLoadingData] = useState(false)
 
-    // Fetch data when dialog opens
-    useEffect(() => {
-        if (isOpen && obat) {
-            fetchObatData()
-            if (suppliers.length === 0) {
-                fetchSuppliers()
-            }
-            if (obatList.length === 0) {
-                fetchObatList()
-            }
-        }
-    }, [isOpen, obat])
-
     // Fetch actual obat data from API
-    const fetchObatData = async () => {
+    const fetchObatData = useCallback(async () => {
         try {
             setLoadingData(true)
             console.log('Fetching data for batch:', obat.noBatch) // Debug log
@@ -124,9 +111,9 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
         } finally {
             setLoadingData(false)
         }
-    }
+    }, [obat.noBatch])
 
-    const fetchSuppliers = async () => {
+    const fetchSuppliers = useCallback(async () => {
         try {
             setLoadingSuppliers(true)
             const response = await fetch('/api/suppliers')
@@ -141,9 +128,9 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
         } finally {
             setLoadingSuppliers(false)
         }
-    }
+    }, [])
 
-    const fetchObatList = async () => {
+    const fetchObatList = useCallback(async () => {
         try {
             setLoadingObat(true)
             const response = await fetch('/api/obat')
@@ -158,7 +145,20 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
         } finally {
             setLoadingObat(false)
         }
-    }
+    }, [])
+
+    // Fetch data when dialog opens
+    useEffect(() => {
+        if (isOpen && obat) {
+            fetchObatData()
+            if (suppliers.length === 0) {
+                fetchSuppliers()
+            }
+            if (obatList.length === 0) {
+                fetchObatList()
+            }
+        }
+    }, [isOpen, obat, fetchObatData, suppliers.length, obatList.length, fetchSuppliers, fetchObatList])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()

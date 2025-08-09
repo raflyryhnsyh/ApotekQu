@@ -13,15 +13,6 @@ interface PurchaseOrderClientProps {
     currentPage: number;
 }
 
-// Tipe untuk hasil query detail dari Supabase
-type DetailResult = {
-    jumlah: number;
-    harga: number;
-    penyedia_produk: {
-        obat: { nama_obat: string }[];
-    }[] | null;
-};
-
 // Tipe untuk data yang sudah diformat dan akan ditampilkan
 type FormattedDetail = {
     nama_obat: string;
@@ -55,7 +46,15 @@ export default function PurchaseOrderClient({ orders, totalPages, currentPage }:
             if (error) throw error;
             if (!data) return;
 
-            const formattedDetails: FormattedDetail[] = (data as any[]).map(d => ({
+            const formattedDetails: FormattedDetail[] = (data as Array<{
+                jumlah: number;
+                harga: number;
+                penyedia_produk?: {
+                    obat?: {
+                        nama_obat: string;
+                    };
+                };
+            }>).map(d => ({
                 jumlah: d.jumlah,
                 harga: d.harga,
                 nama_obat: d.penyedia_produk?.obat?.nama_obat || 'N/A',

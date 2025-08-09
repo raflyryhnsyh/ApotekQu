@@ -1,14 +1,15 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { X, Download, Calendar, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { X, Download } from "lucide-react";
 
 // Import API clients
 import { salesAPI } from "@/lib/api/sales";
 import { purchaseOrderApi } from "@/lib/api/purchase-orders";
-import { PenjualanWithDetails, DetailPenjualan } from "@/types/database";
+import { PenjualanWithDetails } from "@/types/database";
 
 // UI Interface types
 interface PenjualanItem {
+  [key: string]: unknown;
   no: number;
   nama: string;
   kategori: string;
@@ -20,6 +21,7 @@ interface PenjualanItem {
 }
 
 interface PembelianItem {
+  [key: string]: unknown;
   no: number;
   nama: string;
   jumlah: number;
@@ -46,6 +48,24 @@ interface PembelianDetail {
   total: number;
   supplier: string;
   petugas: string;
+}
+
+interface PurchaseOrderResponse {
+  id: string;
+  dibuat_pada: string;
+  supplier?: { nama_supplier?: string };
+  pengguna?: { full_name?: string };
+  detail_purchase_order?: Array<{
+    jumlah: number;
+    harga: number;
+    penyedia_produk?: {
+      obat?: {
+        id: string;
+        nama_obat?: string;
+      };
+      id_obat?: string;
+    };
+  }>;
 }
 
 interface ModalState {
@@ -194,7 +214,7 @@ export default function LaporanPage() {
   });
 
   // Date filter state
-  const [dateFilter, setDateFilter] = useState<DateFilter>({
+  const [dateFilter] = useState<DateFilter>({
     startDate: `${new Date().getFullYear()}-01-01`,
     endDate: new Date().toISOString().split('T')[0]
   });
@@ -249,8 +269,8 @@ export default function LaporanPage() {
         const details: PembelianDetail[] = [];
         let counter = 1;
 
-        response.data.data.forEach((purchase: any) => {
-          purchase.detail_purchase_order?.forEach((detail: any) => {
+        (response.data.data as PurchaseOrderResponse[]).forEach((purchase) => {
+          purchase.detail_purchase_order?.forEach((detail) => {
             // Check multiple possible data structures for product ID
             let matchesProduct = false;
 
@@ -288,7 +308,7 @@ export default function LaporanPage() {
   };
 
   // Fetch data functions
-  const fetchSalesData = async () => {
+  const fetchSalesData = useCallback(async () => {
     try {
       setLoading(true);
       const response = await salesAPI.getSales({
@@ -347,9 +367,9 @@ export default function LaporanPage() {
       console.error('Error fetching sales data:', error);
       setError('Failed to fetch sales data');
     }
-  };
+  }, [dateFilter]);
 
-  const fetchPurchaseData = async () => {
+  const fetchPurchaseData = useCallback(async () => {
     try {
       const response = await purchaseOrderApi.getAll({
         limit: 1000
@@ -362,8 +382,8 @@ export default function LaporanPage() {
 
         // First, collect all unique product IDs
         const productIds = new Set<string>();
-        response.data.data.forEach((purchase: any) => {
-          purchase.detail_purchase_order?.forEach((detail: any) => {
+        (response.data.data as PurchaseOrderResponse[]).forEach((purchase) => {
+          purchase.detail_purchase_order?.forEach((detail) => {
             if (detail.penyedia_produk?.obat?.id) {
               productIds.add(detail.penyedia_produk.obat.id);
             } else if (detail.penyedia_produk?.id_obat) {
@@ -447,12 +467,12 @@ export default function LaporanPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Load data on component mount and when date filter changes
   useEffect(() => {
     Promise.all([fetchSalesData(), fetchPurchaseData()]);
-  }, [dateFilter]);
+  }, [fetchSalesData, fetchPurchaseData]);
 
   // Calculate totals
   const totalPenjualan = penjualanData.reduce((acc, item) => acc + item.totalPenjualan, 0);
@@ -460,7 +480,7 @@ export default function LaporanPage() {
   const totalPembelian = pembelianData.reduce((acc, item) => acc + item.totalPembelian, 0);
 
   // Export functions
-  const exportToCSV = (data: any[], filename: string, headers: string[]) => {
+  const exportToCSV = <T extends Record<string, unknown>>(data: T[], filename: string, headers: string[]) => {
     const csvContent = [
       headers.join(','),
       ...data.map(row =>

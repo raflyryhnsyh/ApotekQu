@@ -156,9 +156,10 @@ export function DataAdd({ onAdd }: DataAddProps) {
             onAdd() // Refresh parent data
             alert("Obat berhasil ditambahkan!")
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error adding obat:", error)
-            alert(error.message || "Terjadi kesalahan saat menambah obat!")
+            const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat menambah obat!"
+            alert(errorMessage)
         } finally {
             setIsLoading(false)
         }

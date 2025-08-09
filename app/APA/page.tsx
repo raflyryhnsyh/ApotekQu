@@ -32,12 +32,12 @@ interface DashboardData {
         end_date: string;
     };
     statistics: DashboardStats;
-    expiring_medicines: any[];
-    low_stock_medicines: any[];
+    expiring_medicines: ExpiredMedicine[];
+    low_stock_medicines: LowStockMedicine[];
 }
 
 export default function APAPage() {
-    const { user, profile, error, signOut, loading } = useAuth();
+    const { user, profile, error, loading } = useAuth();
 
     const [dataLoading, setDataLoading] = useState(false);
     const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -103,7 +103,12 @@ export default function APAPage() {
                 setDashboardData(result.data);
 
                 // Transform expiring medicines data
-                const transformedExpiring = result.data.expiring_medicines.map((item: any) => ({
+                const transformedExpiring = result.data.expiring_medicines.map((item: {
+                    obat?: { nama_obat?: string };
+                    nomor_batch?: string;
+                    kadaluarsa?: string;
+                    stok_sekarang?: number;
+                }) => ({
                     nama: item.obat?.nama_obat || 'Unknown',
                     nomorBatch: item.nomor_batch || 'N/A',
                     tanggalExpire: item.kadaluarsa ? new Date(item.kadaluarsa).toLocaleDateString('id-ID') : 'N/A',
@@ -112,7 +117,11 @@ export default function APAPage() {
                 setExpiredMedicines(transformedExpiring);
 
                 // Transform low stock medicines data
-                const transformedLowStock = result.data.low_stock_medicines.map((item: any) => ({
+                const transformedLowStock = result.data.low_stock_medicines.map((item: {
+                    obat?: { nama_obat?: string };
+                    nomor_batch?: string;
+                    stok_sekarang?: number;
+                }) => ({
                     nama: item.obat?.nama_obat || 'Unknown',
                     nomorBatch: item.nomor_batch || 'N/A',
                     total: item.stok_sekarang || 0

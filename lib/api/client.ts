@@ -50,7 +50,7 @@ class ApiClient {
     }
 
     // POST request
-    async post<T>(endpoint: string, data?: any) {
+    async post<T>(endpoint: string, data?: unknown) {
         return this.request<T>(endpoint, {
             method: 'POST',
             body: data ? JSON.stringify(data) : undefined,
@@ -58,7 +58,7 @@ class ApiClient {
     }
 
     // PUT request
-    async put<T>(endpoint: string, data?: any) {
+    async put<T>(endpoint: string, data?: unknown) {
         return this.request<T>(endpoint, {
             method: 'PUT',
             body: data ? JSON.stringify(data) : undefined,

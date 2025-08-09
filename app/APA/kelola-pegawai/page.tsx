@@ -143,7 +143,7 @@ export default function KelolaPegawaiPage() {
             await fetchPegawaiData(); // Refresh data
             setShowModal(false);
             resetForm();
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error saving pegawai:', error);
         } finally {
             setLoading(false);
@@ -155,7 +155,7 @@ export default function KelolaPegawaiPage() {
         try {
             await deleteUser(id); // Menggunakan API deleteUser
             await fetchPegawaiData(); // Refresh data
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Error deleting pegawai:', error);
         } finally {
             setLoading(false);

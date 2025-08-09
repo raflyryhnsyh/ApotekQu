@@ -73,15 +73,15 @@ export async function GET(
         }
 
         // Format detail_obat
-        const formattedDetailObat = (detailObatData || []).map((detail: any) => ({
+        const formattedDetailObat = (detailObatData || []).map((detail: Record<string, unknown>) => ({
             id: detail.id,
             batch_number: detail.batch_number,
-            tanggal_kadaluarsa: new Date(detail.tanggal_kadaluarsa).toLocaleDateString('id-ID'),
+            tanggal_kadaluarsa: new Date(detail.tanggal_kadaluarsa as string).toLocaleDateString('id-ID'),
             stok: detail.stok,
             harga_beli: detail.harga_beli,
             supplier_id: detail.supplier_id,
-            supplier_nama: detail.supplier?.nama_supplier || '',
-            tanggal_masuk: new Date(detail.tanggal_masuk).toLocaleDateString('id-ID')
+            supplier_nama: (detail.supplier as Record<string, unknown>)?.nama_supplier || '',
+            tanggal_masuk: new Date(detail.tanggal_masuk as string).toLocaleDateString('id-ID')
         }));
 
         // Format response

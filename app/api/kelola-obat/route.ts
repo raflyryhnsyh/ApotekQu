@@ -22,7 +22,6 @@ export async function GET(request: NextRequest) {
         // Optional filters
         const search = searchParams.get('search');
         const kategori = searchParams.get('kategori');
-        const supplier_id = searchParams.get('supplier_id');
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '50');
         const offset = (page - 1) * limit;
@@ -80,25 +79,25 @@ export async function GET(request: NextRequest) {
         // Format response data
         const formattedData: KelolaObatResponse[] = detailObatData
             .filter(detail => detail.obat) // Pastikan ada data obat
-            .map((detail: any) => {
-                const obat = detail.obat;
+            .map((detail: Record<string, unknown>) => {
+                const obat = detail.obat as Record<string, unknown>;
                 // Ambil supplier pertama jika ada multiple supplier
-                const penyediaFirst = obat.penyedia_produk?.[0];
-                const supplierName = penyediaFirst?.supplier?.nama_supplier || 'Tidak ada supplier';
+                const penyediaFirst = (obat?.penyedia_produk as Array<Record<string, unknown>>)?.[0];
+                const supplierName = (penyediaFirst?.supplier as Record<string, unknown>)?.nama_supplier as string || 'Tidak ada supplier';
 
                 return {
-                    noBatch: detail.nomor_batch || '',
-                    nama: obat.nama_obat || '',
-                    totalStok: detail.stok_sekarang || 0,
-                    satuan: detail.satuan || '',
+                    noBatch: (detail.nomor_batch as string) || '',
+                    nama: (obat?.nama_obat as string) || '',
+                    totalStok: (detail.stok_sekarang as number) || 0,
+                    satuan: (detail.satuan as string) || '',
                     tanggalExpired: detail.kadaluarsa
-                        ? new Date(detail.kadaluarsa).toISOString().split('T')[0]
+                        ? new Date(detail.kadaluarsa as string).toISOString().split('T')[0]
                         : '',
                     supplier: supplierName,
-                    harga_jual: detail.harga_jual || 0,
-                    kategori: obat.kategori || '',
-                    komposisi: obat.komposisi || '',
-                    id_obat: obat.id || ''
+                    harga_jual: (detail.harga_jual as number) || 0,
+                    kategori: (obat?.kategori as string) || '',
+                    komposisi: (obat?.komposisi as string) || '',
+                    id_obat: (obat?.id as string) || ''
                 };
             });
 

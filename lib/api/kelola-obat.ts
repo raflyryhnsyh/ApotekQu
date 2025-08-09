@@ -36,7 +36,7 @@ export interface KelolaObatApiResponse {
 
 export interface KelolaObatSingleResponse {
     success: boolean;
-    data: any;
+    data: unknown;
     message?: string;
     error?: string;
 }

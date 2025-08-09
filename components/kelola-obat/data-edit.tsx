@@ -91,7 +91,18 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
             console.log('API Response:', response) // Debug log
 
             if (response.success && response.data) {
-                const data = response.data
+                // Add a type for the data object
+                type ObatApiResponse = {
+                    nama_obat?: string
+                    komposisi?: string
+                    kategori?: string
+                    kadaluarsa?: string
+                    stok_sekarang?: number
+                    satuan?: string
+                    harga_jual?: number
+                    supplier_id?: string
+                }
+                const data = response.data as ObatApiResponse
                 console.log('Setting form data:', data) // Debug log
 
                 // Format date for input[type="date"] (YYYY-MM-DD)
@@ -186,9 +197,10 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
             onEdit() // Refresh parent data
             alert("Obat berhasil diupdate!")
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error("Error updating obat:", error)
-            alert(error.message || "Terjadi kesalahan saat mengupdate obat!")
+            const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat mengupdate obat!"
+            alert(errorMessage)
         } finally {
             setIsLoading(false)
         }

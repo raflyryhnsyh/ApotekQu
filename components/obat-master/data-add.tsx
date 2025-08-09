@@ -20,7 +20,7 @@ import { CreateObatData, createObat } from "@/lib/api/obat-management"
 import { SuccessToast } from "@/components/ui/successalert"
 
 interface DataAddProps {
-    onAdd: (obat: any) => void
+    onAdd: (obat: unknown) => void
 }
 
 export function DataAdd({ onAdd }: DataAddProps) {

@@ -98,7 +98,7 @@ export default function LoginPage() {
 
                 // Update auth context immediately
                 setUserData(
-                    { id: result.data.user.id, email: result.data.user.email } as any,
+                    result.data.user,
                     {
                         role: profile.role,
                         full_name: profile.full_name

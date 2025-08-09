@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/dialog"
 import { Trash2, AlertTriangle } from "lucide-react"
 import { ObatResponse, deleteObat } from "@/lib/api/obat-management"
-import { SuccessToast } from "@/components/ui/successalert"
 
 interface DataDeleteProps {
     obat: ObatResponse
@@ -23,9 +22,6 @@ interface DataDeleteProps {
 export default function DataDelete({ obat, onDelete }: DataDeleteProps) {
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [showSuccessToast, setShowSuccessToast] = useState(false)
-    const [showErrorToast, setShowErrorToast] = useState(false)
-    const [errorMessage, setErrorMessage] = useState("")
 
     const handleDelete = async () => {
         setIsLoading(true)
@@ -37,12 +33,10 @@ export default function DataDelete({ obat, onDelete }: DataDeleteProps) {
             // Close dialog and trigger parent refresh
             setOpen(false)
             onDelete()
-            setShowSuccessToast(true)
 
         } catch (error) {
             console.error("Error deleting obat:", error)
-            setErrorMessage("Terjadi kesalahan saat menghapus obat!")
-            setShowErrorToast(true)
+            alert("Terjadi kesalahan saat menghapus obat!")
         } finally {
             setIsLoading(false)
         }

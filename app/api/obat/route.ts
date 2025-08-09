@@ -111,27 +111,28 @@ export async function GET(request: NextRequest) {
         }
 
         // Group detail_obat by id_obat
-        const detailByObatId = (detailObatData || []).reduce((acc: any, detail: any) => {
-            if (!acc[detail.id_obat]) {
-                acc[detail.id_obat] = [];
+        const detailByObatId = (detailObatData || []).reduce((acc: Record<string, unknown[]>, detail: Record<string, unknown>) => {
+            const id_obat = detail.id_obat as string;
+            if (!acc[id_obat]) {
+                acc[id_obat] = [];
             }
-            acc[detail.id_obat].push({
+            acc[id_obat].push({
                 nomor_batch: detail.nomor_batch,
-                kadaluarsa: detail.kadaluarsa ? new Date(detail.kadaluarsa).toLocaleDateString('id-ID') : '',
+                kadaluarsa: detail.kadaluarsa ? new Date(detail.kadaluarsa as string).toLocaleDateString('id-ID') : '',
                 stok_sekarang: detail.stok_sekarang,
                 satuan: detail.satuan,
                 harga_jual: detail.harga_jual,
                 id_obat: detail.id_obat,
-                dibuat_pada: detail.dibuat_pada ? new Date(detail.dibuat_pada).toLocaleDateString('id-ID') : '',
-                diedit_pada: detail.diedit_pada ? new Date(detail.diedit_pada).toLocaleDateString('id-ID') : ''
+                dibuat_pada: detail.dibuat_pada ? new Date(detail.dibuat_pada as string).toLocaleDateString('id-ID') : '',
+                diedit_pada: detail.diedit_pada ? new Date(detail.diedit_pada as string).toLocaleDateString('id-ID') : ''
             });
             return acc;
         }, {});
 
         // Format response data
-        const formattedData: ObatResponse[] = obatData.map((obat: any) => {
-            const detailObat = detailByObatId[obat.id] || [];
-            const firstDetail = detailObat[0]; // Ambil detail pertama untuk satuan dan harga
+        const formattedData = obatData.map((obat: Record<string, unknown>) => {
+            const detailObat = detailByObatId[obat.id as string] || [];
+            const firstDetail = detailObat[0] as Record<string, unknown>; // Ambil detail pertama untuk satuan dan harga
 
             return {
                 id: obat.id,

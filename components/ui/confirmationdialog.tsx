@@ -23,23 +23,23 @@ export function ConfirmationDialog({
 
     return (
         // Latar belakang overlay
-        <div 
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        <div
+            className="fixed inset-0 z-50 flex items-center justify-center"
             onClick={onClose}
         >
             {/* Konten Dialog */}
-            <div 
+            <div
                 className="w-full max-w-md rounded-2xl bg-white p-6 shadow-lg"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Judul (rata kiri secara default) */}
                 <h2 className="text-lg font-bold text-gray-900 break-words  text-left">{title}</h2>
-                
+
                 {/* Deskripsi (rata kiri secara default) */}
                 <div className="mt-2 text-sm text-gray-600 break-words whitespace-normal  text-left">
                     {children}
                 </div>
-                
+
                 {/* Area Tombol Aksi (didorong ke kanan) */}
                 <div className="mt-6 flex justify-end gap-3">
                     <button

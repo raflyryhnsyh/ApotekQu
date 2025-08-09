@@ -23,10 +23,10 @@ export function RincianPOModal({ isOpen, onClose, order, details, isLoading }: R
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
             <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
                 <h2 className="text-xl font-bold text-gray-900">Rincian PO</h2>
-                
+
                 {isLoading ? (
                     <div className="py-12 text-center">Memuat rincian...</div>
                 ) : (
@@ -34,10 +34,10 @@ export function RincianPOModal({ isOpen, onClose, order, details, isLoading }: R
                         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                             <p className="font-semibold text-gray-600">Nomor PO</p>
                             <p className="text-gray-800">{order?.id.substring(0, 8).toUpperCase()}</p>
-                            
+
                             <p className="font-semibold text-gray-600">Tanggal</p>
                             <p className="text-gray-800">{order ? new Date(order.dibuat_pada).toLocaleDateString('id-ID') : ''}</p>
-                            
+
                             <p className="font-semibold text-gray-600">Supplier</p>
                             <p className="text-gray-800">{order?.supplier}</p>
                         </div>

@@ -38,6 +38,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     const fetchUserProfile = async () => {
         try {
+            // Skip auth for test routes or if test mode is enabled
+            if (typeof window !== 'undefined' &&
+                (window.location.pathname.includes('/test') || (window as any).__TEST_MODE__)) {
+                console.log('🧪 Skipping auth fetch for test mode');
+                return false;
+            }
+
             console.log('Fetching user profile...');
             console.log('Current URL:', window.location.href);
 

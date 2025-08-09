@@ -1,68 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import TransactionDetailModal from "@/components/penjualan/rincian-transaksi";
 import PaymentSuccessModal from "@/components/penjualan/pembayaran";
 import { DataTable, Column } from "@/components/penjualan/data-table";
-import { CartItem, Product, Transaction } from "@/types/pegawai";
+import { penjualanAPI, Product, CartItem, Transaction, Sale } from "@/lib/api/penjualan";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function PenjualanPage() {
+    const { user, profile, loading: authLoading, error: authError } = useAuth();
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
-    const [products, setProducts] = useState<Product[]>([
-        { id: "MED-001", name: "Paracetamol 500mg", price: 5000, stock: 100 },
-        { id: "MED-002", name: "Ibuprofen 200mg", price: 4000, stock: 50 },
-        { id: "MED-003", name: "Amoxicillin 250mg", price: 8000, stock: 30 },
-        { id: "MED-004", name: "Cetirizine 10mg", price: 3500, stock: 75 },
-        { id: "MED-005", name: "Aspirin", price: 50000, stock: 200 },
-        { id: "MED-006", name: "Acetaminophen", price: 100000, stock: 150 },
-    ]);
-
+    const [productsLoading, setProductsLoading] = useState(false);
+    const [transactionsLoading, setTransactionsLoading] = useState(false);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [productsWithStock, setProductsWithStock] = useState<any[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [selectedProductId, setSelectedProductId] = useState("");
     const [quantity, setQuantity] = useState(1);
-    const [cashback, setCashback] = useState(0);
     const [showTransactionDetail, setShowTransactionDetail] = useState(false);
     const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
-    const [transactions, setTransactions] = useState<Transaction[]>([
-        {
-            id: "SALES-00123",
-            date: "2024-01-20",
-            pharmacist: "Ratu",
-            total: 5000,
-            items: [
-                { name: "Paracetamol 500mg", quantity: 1, price: 5000 }
-            ]
-        },
-        {
-            id: "SALES-00124",
-            date: "2024-01-20",
-            pharmacist: "Ratu",
-            total: 4000,
-            items: [
-                { name: "Ibuprofen 200mg", quantity: 1, price: 4000 }
-            ]
-        },
-        {
-            id: "SALES-00125",
-            date: "2024-01-20",
-            pharmacist: "Ratu",
-            total: 8000,
-            items: [
-                { name: "Amoxicillin 250mg", quantity: 1, price: 8000 }
-            ]
-        },
-        {
-            id: "SALES-00126",
-            date: "2024-01-20",
-            pharmacist: "Sarah",
-            total: 3500,
-            items: [
-                { name: "Cetirizine 10mg", quantity: 1, price: 3500 }
-            ]
-        },
-    ]);
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
     const [cashAmount, setCashAmount] = useState("");
+    const [error, setError] = useState("");
 
     // Define cart columns
     const cartColumns: Column<CartItem>[] = [
@@ -155,13 +117,144 @@ export default function PenjualanPage() {
     ];
 
     useEffect(() => {
-        const initializePage = async () => {
-            setLoading(true);
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            setLoading(false);
-        };
-        initializePage();
-    }, []);
+        // Check authentication first
+        if (!authLoading && (!user || authError)) {
+            router.push('/login');
+            return;
+        }
+
+        // Only load data if user is authenticated
+        if (user && !authLoading) {
+            const initializePage = async () => {
+                setLoading(true);
+                await Promise.all([
+                    loadProducts(),
+                    loadTransactions()
+                ]);
+                setLoading(false);
+            };
+            initializePage();
+        }
+    }, [user, authLoading, authError, router]);
+
+    // Load products from API
+    const loadProducts = async () => {
+        try {
+            setProductsLoading(true);
+            setError(""); // Clear previous errors
+
+            // Try to get products with stock first
+            let response = await penjualanAPI.getProductsWithStock();
+
+            if (response.success && response.data) {
+                setProductsWithStock(response.data);
+
+                // Transform kelola-obat data to simple product list for dropdown
+                const productMap = new Map();
+
+                response.data.forEach((item: any) => {
+                    if (!productMap.has(item.id_obat)) {
+                        productMap.set(item.id_obat, {
+                            id: item.id_obat,
+                            name: item.nama,
+                            price: item.harga_jual || 0,
+                            stock: 0,
+                            kategori: item.kategori,
+                            komposisi: item.komposisi,
+                            batches: []
+                        });
+                    }
+
+                    const product = productMap.get(item.id_obat);
+                    product.stock += item.totalStok || 0;
+                    product.batches.push({
+                        nomor_batch: item.noBatch,
+                        stok_sekarang: item.totalStok,
+                        kadaluarsa: item.tanggalExpired,
+                        harga_jual: item.harga_jual
+                    });
+                });
+
+                const transformedProducts: Product[] = Array.from(productMap.values());
+                setProducts(transformedProducts);
+                console.log("Products loaded successfully:", transformedProducts.length);
+            } else {
+                // Fallback to basic products endpoint
+                console.log("Trying fallback endpoint /obat");
+                const basicResponse = await penjualanAPI.getProducts();
+
+                if (basicResponse.success && basicResponse.data) {
+                    // Use basic product data without detailed stock info
+                    const basicProducts = basicResponse.data.map((item: any) => ({
+                        id: item.id,
+                        name: item.nama_obat,
+                        price: item.harga || 0,
+                        stock: 100, // Default stock for basic products
+                        kategori: item.kategori,
+                        komposisi: item.komposisi
+                    }));
+
+                    setProducts(basicProducts);
+                    setProductsWithStock([]); // No detailed stock info
+                    console.log("Basic products loaded:", basicProducts.length);
+                } else {
+                    console.error("Failed to load products:", basicResponse.error);
+
+                    // Ultimate fallback: use dummy data
+                    console.log("Using dummy data as fallback");
+                    const dummyProducts: Product[] = [
+                        { id: "MED-001", name: "Paracetamol 500mg", price: 5000, stock: 100 },
+                        { id: "MED-002", name: "Ibuprofen 200mg", price: 4000, stock: 50 },
+                        { id: "MED-003", name: "Amoxicillin 250mg", price: 8000, stock: 30 },
+                        { id: "MED-004", name: "Cetirizine 10mg", price: 3500, stock: 75 },
+                        { id: "MED-005", name: "Aspirin", price: 50000, stock: 200 },
+                        { id: "MED-006", name: "Acetaminophen", price: 100000, stock: 150 },
+                    ];
+
+                    setProducts(dummyProducts);
+                    setError('Menggunakan data demo - API tidak tersedia');
+                }
+            }
+        } catch (error) {
+            console.error('Error loading products:', error);
+            setError('Gagal memuat data obat: ' + (error instanceof Error ? error.message : 'Network error'));
+        } finally {
+            setProductsLoading(false);
+        }
+    };    // Load transactions from API
+    const loadTransactions = async () => {
+        try {
+            setTransactionsLoading(true);
+            const response = await penjualanAPI.getSales({
+                page: 1,
+                limit: 10
+            });
+
+            if (response.success && response.data) {
+                // Transform API data to match component interface
+                const transformedTransactions: Transaction[] = response.data.data.map((sale: Sale) => ({
+                    id: sale.id,
+                    date: new Date(sale.dibuat_pada).toISOString().split('T')[0],
+                    pharmacist: sale.pengguna.full_name,
+                    total: sale.total,
+                    items: sale.detail_penjualan.map(detail => ({
+                        name: detail.obat.nama_obat,
+                        quantity: detail.jumlah_terjual,
+                        price: detail.harga
+                    }))
+                }));
+
+                setTransactions(transformedTransactions);
+            } else {
+                setError(response.error || 'Gagal memuat data transaksi');
+            }
+        } catch (error) {
+            console.error('Error loading transactions:', error);
+            setError('Gagal memuat data transaksi');
+        } finally {
+            setTransactionsLoading(false);
+        }
+    };
 
     const addToCart = () => {
         const selectedProduct = products.find(p => p.id === selectedProductId);
@@ -202,39 +295,114 @@ export default function PenjualanPage() {
         return cash >= total ? cash - total : 0;
     };
 
-    const handlePayment = () => {
+    const handlePayment = async () => {
+        // Double check authentication before payment
+        if (!user?.id || !profile) {
+            setError('User tidak terautentikasi. Silakan login ulang.');
+            setTimeout(() => {
+                router.push('/login');
+            }, 2000);
+            return;
+        }
+
         const total = getTotalAmount();
         const cash = parseFloat(cashAmount) || 0;
 
         if (cash >= total && cart.length > 0) {
-            const newTransaction = {
-                id: `SALES-${String(Date.now()).slice(-5)}`,
-                date: new Date().toISOString().split('T')[0],
-                pharmacist: "Ratu",
-                total: total,
-                items: cart.map(item => ({
-                    name: item.name,
-                    quantity: item.quantity,
-                    price: item.subtotal
-                }))
-            };
+            try {
+                setLoading(true);
 
-            setCurrentTransaction(newTransaction);
-            setTransactions([newTransaction, ...transactions]);
-            setShowPaymentSuccess(true);
-            setCart([]);
-            setCashAmount("");
-            setCashback(0);
+                // Prepare sale data for API
+                const saleData = {
+                    diproses_oleh: user.id,
+                    items: cart.map(item => {
+                        // Find batch info for this product from kelola-obat data
+                        const productWithStock = productsWithStock.find(p => p.id_obat === item.id);
+                        const availableBatch = productWithStock?.noBatch || 'BATCH-001'; // fallback
+
+                        return {
+                            id_obat: item.id,
+                            jumlah_terjual: item.quantity,
+                            harga: item.price,
+                            nomor_batch: availableBatch
+                        };
+                    })
+                };
+
+                const response = await penjualanAPI.createSale(saleData);
+
+                if (response.success && response.data) {
+                    // Create transaction for display
+                    const newTransaction: Transaction = {
+                        id: response.data.penjualan.id,
+                        date: new Date(response.data.penjualan.dibuat_pada).toISOString().split('T')[0],
+                        pharmacist: profile?.full_name || 'Unknown',
+                        total: response.data.penjualan.total,
+                        items: cart.map(item => ({
+                            name: item.name,
+                            quantity: item.quantity,
+                            price: item.price
+                        }))
+                    };
+
+                    setCurrentTransaction(newTransaction);
+                    setTransactions([newTransaction, ...transactions]);
+                    setShowPaymentSuccess(true);
+                    setCart([]);
+                    setCashAmount("");
+
+                    // Reload products to update stock
+                    await loadProducts();
+                } else {
+                    setError(response.error || 'Gagal memproses pembayaran');
+                }
+            } catch (error) {
+                console.error('Error processing payment:', error);
+                setError('Gagal memproses pembayaran');
+            } finally {
+                setLoading(false);
+            }
         } else {
-            alert("Jumlah uang tidak mencukupi atau keranjang kosong!");
+            setError("Jumlah uang tidak mencukupi atau keranjang kosong!");
         }
     };
 
+    // Show authentication loading
+    if (authLoading) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center">
+                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+                <p className="mt-4 text-lg">Memverifikasi autentikasi...</p>
+            </div>
+        );
+    }
+
+    // Show authentication error
+    if (authError || !user) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center">
+                <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg mb-4">
+                    <h3 className="text-lg font-semibold">Autentikasi Diperlukan</h3>
+                    <p className="text-sm mt-2">
+                        {authError || 'Anda harus login untuk mengakses halaman ini.'}
+                    </p>
+                </div>
+                <button
+                    onClick={() => router.push('/login')}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                    Ke Halaman Login
+                </button>
+            </div>
+        );
+    }
+
+    // Show loading for data fetching
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center">
                 <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-lg">Loading...</p>
+                <p className="mt-4 text-lg">Memuat data...</p>
             </div>
         );
     }
@@ -242,7 +410,33 @@ export default function PenjualanPage() {
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-4xl mx-auto">
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Penjualan Obat</h1>
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800">Penjualan Obat</h1>
+                </div>
+
+                {/* Error Alert */}
+                {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+                        <div className="flex">
+                            <div className="flex-shrink-0">
+                                <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                </svg>
+                            </div>
+                            <div className="ml-3">
+                                <p className="text-sm">{error}</p>
+                            </div>
+                            <div className="ml-auto pl-3">
+                                <button
+                                    onClick={() => setError("")}
+                                    className="text-red-400 hover:text-red-600"
+                                >
+                                    ×
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Detail Transaksi */}
                 <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
@@ -265,7 +459,7 @@ export default function PenjualanPage() {
                             </div>
                             <div>
                                 <span className="text-gray-600 text-sm">Petugas Apotik</span>
-                                <p className="font-medium">Ratu</p>
+                                <p className="font-medium">{profile?.full_name || 'Loading...'}</p>
                             </div>
                         </div>
                     </div>
@@ -281,8 +475,11 @@ export default function PenjualanPage() {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                 value={selectedProductId}
                                 onChange={(e) => setSelectedProductId(e.target.value)}
+                                disabled={productsLoading}
                             >
-                                <option value="">Masukkan kode atau nama produk</option>
+                                <option value="">
+                                    {productsLoading ? 'Loading...' : 'Pilih obat'}
+                                </option>
                                 {products.map((product) => (
                                     <option key={product.id} value={product.id}>
                                         {product.name} - Rp {product.price.toLocaleString('id-ID')} (Stok: {product.stock})
@@ -304,10 +501,10 @@ export default function PenjualanPage() {
                     </div>
                     <button
                         onClick={addToCart}
-                        disabled={!selectedProductId || quantity <= 0}
+                        disabled={!selectedProductId || quantity <= 0 || productsLoading}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                     >
-                        Tambah
+                        {productsLoading ? 'Loading...' : 'Tambah'}
                     </button>
 
                     {/* Cart Table */}
@@ -343,10 +540,10 @@ export default function PenjualanPage() {
                             </div>
                             <button
                                 onClick={handlePayment}
-                                disabled={cart.length === 0 || !cashAmount || parseFloat(cashAmount) < getTotalAmount()}
+                                disabled={cart.length === 0 || loading}
                                 className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                             >
-                                Bayar
+                                {loading ? 'Processing...' : 'Bayar'}
                             </button>
                         </div>
                     </div>
@@ -354,12 +551,18 @@ export default function PenjualanPage() {
 
                 {/* Riwayat Transaksi */}
                 <div className="bg-white rounded-lg shadow-sm border p-6">
-                    <h2 className="text-lg font-semibold mb-4 text-gray-900">Riwayat Transaksi</h2>
-                    <DataTable
-                        data={transactions}
-                        columns={transactionColumns}
-                        emptyMessage="Belum ada transaksi"
-                    />
+                    <h3 className="text-lg font-semibold mb-4 text-gray-900">Riwayat Transaksi</h3>
+                    {transactionsLoading ? (
+                        <div className="flex justify-center py-8">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        </div>
+                    ) : (
+                        <DataTable
+                            data={transactions}
+                            columns={transactionColumns}
+                            emptyMessage="Belum ada transaksi"
+                        />
+                    )}
                 </div>
             </div>
 

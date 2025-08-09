@@ -151,7 +151,8 @@ export async function POST(request: NextRequest) {
             .from("penjualan")
             .insert([{
                 diproses_oleh: validatedData.diproses_oleh,
-                total: total
+                total: total,
+                dibuat_pada: new Date().toISOString()
             }])
             .select()
             .single();
@@ -165,16 +166,84 @@ export async function POST(request: NextRequest) {
             }, { status: 500 });
         }
 
-        // Create sale details
-        const saleDetails = validatedData.items.map(item => ({
+        // Create sale details - validate batch numbers exist in detail_obat first
+        const consolidatedItems = new Map();
+
+        // Consolidate items with same id_obat and nomor_batch
+        validatedData.items.forEach(item => {
+            const key = `${item.id_obat}_${item.nomor_batch}`;
+            if (consolidatedItems.has(key)) {
+                const existing = consolidatedItems.get(key);
+                existing.jumlah_terjual += item.jumlah_terjual;
+                // Use weighted average for price if different
+                existing.harga = ((existing.harga * existing.originalCount) + (item.harga * 1)) / (existing.originalCount + 1);
+                existing.originalCount += 1;
+            } else {
+                consolidatedItems.set(key, {
+                    ...item,
+                    originalCount: 1
+                });
+            }
+        });
+
+        // Validate that all batch numbers exist in detail_obat
+        const validatedItems = [];
+        for (const item of Array.from(consolidatedItems.values())) {
+            console.log(`Validating batch: ${item.nomor_batch} for product: ${item.id_obat}`);
+
+            const { data: batchExists, error: batchError } = await supabase
+                .from("detail_obat")
+                .select("nomor_batch, stok_sekarang, id_obat")
+                .eq("nomor_batch", item.nomor_batch)
+                .eq("id_obat", item.id_obat)
+                .single();
+
+            if (batchError || !batchExists) {
+                console.error(`Batch ${item.nomor_batch} not found in detail_obat for product ${item.id_obat}`);
+                console.error('Error details:', batchError);
+
+                // Debug: List available batches for this product
+                const { data: availableBatches } = await supabase
+                    .from("detail_obat")
+                    .select("nomor_batch, stok_sekarang, id_obat")
+                    .eq("id_obat", item.id_obat);
+
+                console.log(`Available batches for product ${item.id_obat}:`, availableBatches);
+
+                // Debug: Check if batch exists with different product
+                const { data: batchWithDifferentProduct } = await supabase
+                    .from("detail_obat")
+                    .select("nomor_batch, stok_sekarang, id_obat")
+                    .eq("nomor_batch", item.nomor_batch);
+
+                console.log(`Batch ${item.nomor_batch} exists with products:`, batchWithDifferentProduct);
+
+                return NextResponse.json({
+                    success: false,
+                    error: `Batch ${item.nomor_batch} not found in inventory for product ${item.id_obat}. Available batches: ${availableBatches?.map(b => b.nomor_batch).join(', ') || 'none'}`,
+                    data: null
+                }, { status: 400 });
+            }
+
+            // Check stock availability
+            if (batchExists.stok_sekarang < item.jumlah_terjual) {
+                return NextResponse.json({
+                    success: false,
+                    error: `Insufficient stock for batch ${item.nomor_batch}. Available: ${batchExists.stok_sekarang}, Requested: ${item.jumlah_terjual}`,
+                    data: null
+                }, { status: 400 });
+            }
+
+            validatedItems.push(item);
+        }
+
+        const saleDetails = validatedItems.map(item => ({
             id_penjualan: sale.id,
             id_obat: item.id_obat,
             jumlah_terjual: item.jumlah_terjual,
             harga: item.harga,
             nomor_batch: item.nomor_batch
-        }));
-
-        const { data: details, error: detailsError } = await supabase
+        })); const { data: details, error: detailsError } = await supabase
             .from("detail_penjualan")
             .insert(saleDetails)
             .select();
@@ -191,14 +260,14 @@ export async function POST(request: NextRequest) {
             }, { status: 500 });
         }
 
-        // Update stock for each item
+        // Update stock for each validated item (we already checked availability above)
         const stockUpdates = [];
 
-        for (const item of validatedData.items) {
+        for (const item of validatedItems) {
             // Get current stock
             const { data: currentStock, error: stockError } = await supabase
                 .from("detail_obat")
-                .select("stok")
+                .select("stok_sekarang")
                 .eq("nomor_batch", item.nomor_batch)
                 .eq("id_obat", item.id_obat)
                 .single();
@@ -208,16 +277,10 @@ export async function POST(request: NextRequest) {
                 continue;
             }
 
-            const oldStock = currentStock.stok;
+            const oldStock = currentStock.stok_sekarang;
             const newStock = oldStock - item.jumlah_terjual;
 
-            if (newStock < 0) {
-                console.warn(`Insufficient stock for batch ${item.nomor_batch}. Available: ${oldStock}, Requested: ${item.jumlah_terjual}`);
-                // You might want to handle this differently (reject the sale, partial fulfillment, etc.)
-                continue;
-            }
-
-            // Update stock
+            // Update stock (no need to check again since we validated above)
             const { error: updateError } = await supabase
                 .from("detail_obat")
                 .update({ stok: newStock })
@@ -354,7 +417,7 @@ export async function DELETE(request: NextRequest) {
             // Get current stock to add back the sold quantity
             const { data: currentStock, error: getStockError } = await supabase
                 .from("detail_obat")
-                .select("stok")
+                .select("stok_sekarang")
                 .eq("nomor_batch", detail.nomor_batch)
                 .eq("id_obat", detail.id_obat)
                 .single();
@@ -364,20 +427,18 @@ export async function DELETE(request: NextRequest) {
                 continue;
             }
 
-            const newStock = currentStock.stok + detail.jumlah_terjual;
+            const newStock = currentStock.stok_sekarang + detail.jumlah_terjual;
 
             const { error: stockError } = await supabase
                 .from("detail_obat")
-                .update({ stok: newStock })
+                .update({ stok_sekarang: newStock })
                 .eq("nomor_batch", detail.nomor_batch)
                 .eq("id_obat", detail.id_obat);
 
             if (stockError) {
                 console.error(`Error restoring stock for batch ${detail.nomor_batch}:`, stockError);
             }
-        }
-
-        // Delete sale details first (foreign key constraint)
+        }        // Delete sale details first (foreign key constraint)
         const { error: deleteDetailsError } = await supabase
             .from("detail_penjualan")
             .delete()

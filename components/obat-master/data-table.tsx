@@ -7,7 +7,6 @@ import {
     flexRender,
     getCoreRowModel,
     getFilteredRowModel,
-    getPaginationRowModel,
     getSortedRowModel,
     SortingState,
     useReactTable,
@@ -23,188 +22,112 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table"
-import { DataAdd } from "./data-add"
-import { DataEdit } from "./data-edit"
-import { DataDelete } from "./data-delete"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import DataEdit from "./data-edit"
+import DataDelete from "./data-delete"
+import { ObatResponse, ObatFilters } from "@/lib/api/obat-management"
+import { Edit, Trash2, Search, RefreshCw, Package, AlertTriangle } from "lucide-react"
 
-export type ObatMaster = {
-    id: string
-    nama: string
-    kategori: string
-    satuan: string
-    hargaJual: number
-    komposisi: string
+export interface DataTableProps {
+    data: ObatResponse[]
+    total: number
+    currentPage: number
+    loading: boolean
+    onPageChange: (page: number) => void
+    onSearch: (search: string) => void
+    onFilterChange: (filters: any) => void
+    onRefresh: () => void
 }
 
-const initialData: ObatMaster[] = [
+const columns: ColumnDef<ObatResponse>[] = [
     {
-        id: "12345",
-        nama: "Aspirin",
-        kategori: "Pain Relief",
-        satuan: "Tablets",
-        hargaJual: 10000,
-        komposisi: "aajaskjasksjkajskajska"
+        accessorKey: "id",
+        header: "ID",
+        cell: ({ row }) => (
+            <div className="font-mono text-xs">{row.getValue("id")?.toString().substring(0, 8)}</div>
+        ),
     },
     {
-        id: "67890",
-        nama: "Ibuprofen",
-        kategori: "Anti-inflammatory",
-        satuan: "Capsules",
-        hargaJual: 10000,
-        komposisi: "aajaskjasksjkajskajska"
+        accessorKey: "nama_obat",
+        header: "Nama Obat",
+        cell: ({ row }) => (
+            <div className="font-medium">{row.getValue("nama_obat")}</div>
+        ),
     },
     {
-        id: "24680",
-        nama: "Paracetamol",
-        kategori: "Fever Reducer",
-        satuan: "Tablets",
-        hargaJual: 10000,
-        komposisi: "aajaskjasksjkajskajska"
+        accessorKey: "kategori",
+        header: "Kategori",
+        cell: ({ row }) => (
+            <Badge variant="outline">{row.getValue("kategori")}</Badge>
+        ),
     },
     {
-        id: "13579",
-        nama: "Amoxicillin",
-        kategori: "Antibiotic",
-        satuan: "Capsules",
-        hargaJual: 10000,
-        komposisi: "aajaskjasksjkajskajska"
+        accessorKey: "satuan",
+        header: "Satuan",
+        cell: ({ row }) => (
+            <div>{row.getValue("satuan") || "-"}</div>
+        ),
     },
     {
-        id: "97531",
-        nama: "Loratadine",
-        kategori: "Antihistamine",
-        satuan: "Tablets",
-        hargaJual: 10000,
-        komposisi: "aajaskjasksjkajskajska"
+        accessorKey: "harga_jual",
+        header: () => <div className="text-center">Harga Jual</div>,
+        cell: ({ row }) => {
+            const harga = parseFloat(row.getValue("harga_jual") || "0")
+            const formatted = new Intl.NumberFormat("id-ID", {
+                style: "currency",
+                currency: "IDR"
+            }).format(harga)
+            return <div className="text-center font-medium">{formatted}</div>
+        },
     },
     {
-        id: "86420",
-        nama: "Omeprazole",
-        kategori: "Acid Reducer",
-        satuan: "Capsules",
-        hargaJual: 10000,
-        komposisi: "aajaskjasksjkajskajska"
+        accessorKey: "komposisi",
+        header: "Komposisi",
+        cell: ({ row }) => (
+            <div className="max-w-[200px] truncate">{row.getValue("komposisi") || "-"}</div>
+        ),
     },
     {
-        id: "36925",
-        nama: "Simvastatin",
-        kategori: "Cholesterol Lowering",
-        satuan: "Tablets",
-        hargaJual: 10000,
-        komposisi: "aajaskjasksjkajskajska"
+        id: "actions",
+        header: "Action",
+        enableHiding: false,
+        cell: ({ row }) => {
+            const obat = row.original
+
+            return (
+                <div className="flex space-x-2">
+                    <DataEdit
+                        obat={obat}
+                        onClose={() => {
+                            // Refresh data after edit
+                            window.location.reload()
+                        }}
+                    />
+                    <DataDelete
+                        obat={obat}
+                        onDelete={() => {
+                            // Refresh data after delete
+                            window.location.reload()
+                        }}
+                    />
+                </div>
+            )
+        },
     },
-    {
-        id: "74185",
-        nama: "Metformin",
-        kategori: "Diabetes Medication",
-        satuan: "Tablets",
-        hargaJual: 10000,
-        komposisi: "aajaskjasksjkajskajska"
-    },
-    {
-        id: "52896",
-        nama: "Ciprofloxacin",
-        kategori: "Antibiotic",
-        satuan: "Tablets",
-        hargaJual: 10000,
-        komposisi: "aajaskjasksjkajskajska"
-    }
 ]
 
-export function DataTableDemo() {
-    const [data, setData] = React.useState<ObatMaster[]>(initialData)
+export function DataTableDemo({
+    data,
+    total,
+    currentPage,
+    loading,
+    onPageChange
+}: DataTableProps) {
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
     const [rowSelection, setRowSelection] = React.useState({})
-
-    // Function to generate new ID
-    const generateId = () => {
-        return Math.floor(10000 + Math.random() * 90000).toString()
-    }
-
-    // Handle add new obat
-    const handleAdd = (newObat: Omit<ObatMaster, 'id'>) => {
-        const obatWithId: ObatMaster = {
-            ...newObat,
-            id: generateId()
-        }
-        setData(prev => [...prev, obatWithId])
-    }
-
-    // Handle edit obat
-    const handleEdit = (id: string, updatedObat: Omit<ObatMaster, 'id'>) => {
-        setData(prev => prev.map(obat =>
-            obat.id === id ? { ...updatedObat, id } : obat
-        ))
-    }
-
-    // Handle delete obat
-    const handleDelete = (id: string) => {
-        setData(prev => prev.filter(obat => obat.id !== id))
-    }
-
-    const columns: ColumnDef<ObatMaster>[] = [
-        {
-            accessorKey: "id",
-            header: "ID",
-            cell: ({ row }) => (
-                <div className="font-medium">{row.getValue("id")}</div>
-            ),
-        },
-        {
-            accessorKey: "nama",
-            header: "Nama Obat",
-            cell: ({ row }) => (
-                <div className="font-medium">{row.getValue("nama")}</div>
-            ),
-        },
-        {
-            accessorKey: "kategori",
-            header: "Kategori",
-            cell: ({ row }) => (
-                <div>{row.getValue("kategori")}</div>
-            ),
-        },
-        {
-            accessorKey: "satuan",
-            header: "Satuan",
-            cell: ({ row }) => (
-                <div>{row.getValue("satuan")}</div>
-            ),
-        },
-        {
-            accessorKey: "hargaJual",
-            header: () => <div className="text-center">Harga Jual</div>,
-            cell: ({ row }) => {
-                const harga = parseFloat(row.getValue("hargaJual"))
-                const formatted = new Intl.NumberFormat("id-ID").format(harga)
-                return <div className="text-center font-medium">{formatted}</div>
-            },
-        },
-        {
-            accessorKey: "komposisi",
-            header: "Komposisi",
-            cell: ({ row }) => (
-                <div className="max-w-[200px] truncate">{row.getValue("komposisi")}</div>
-            ),
-        },
-        {
-            id: "actions",
-            header: "Action",
-            enableHiding: false,
-            cell: ({ row }) => {
-                const obat = row.original
-
-                return (
-                    <div className="flex space-x-2">
-                        <DataEdit obat={obat} onEdit={handleEdit} />
-                        <DataDelete obat={obat} onDelete={handleDelete} />
-                    </div>
-                )
-            },
-        },
-    ]
 
     const table = useReactTable({
         data,
@@ -212,7 +135,6 @@ export function DataTableDemo() {
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
@@ -223,15 +145,11 @@ export function DataTableDemo() {
             columnVisibility,
             rowSelection,
         },
+        manualPagination: true,
     })
 
     return (
         <div className="w-full space-y-4">
-            {/* Header dengan tombol Tambah Obat */}
-            <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold mb-4">Obat Master</h1>
-                <DataAdd onAdd={handleAdd} />
-            </div>
 
             {/* Table */}
             <div className="rounded-md border bg-white">
@@ -255,7 +173,16 @@ export function DataTableDemo() {
                         ))}
                     </TableHeader>
                     <TableBody>
-                        {table.getRowModel().rows?.length ? (
+                        {loading ? (
+                            <TableRow>
+                                <TableCell colSpan={columns.length} className="h-24 text-center">
+                                    <div className="flex items-center justify-center space-x-2">
+                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                                        <span>Loading data obat...</span>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ) : table.getRowModel().rows?.length ? (
                             table.getRowModel().rows.map((row) => (
                                 <TableRow
                                     key={row.id}
@@ -278,7 +205,10 @@ export function DataTableDemo() {
                                     colSpan={columns.length}
                                     className="h-24 text-center"
                                 >
-                                    No results.
+                                    <div className="flex flex-col items-center justify-center space-y-2">
+                                        <Package className="h-8 w-8 text-gray-400" />
+                                        <span className="text-gray-500">Tidak ada data obat</span>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         )}
@@ -287,25 +217,27 @@ export function DataTableDemo() {
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-end space-x-2 py-4">
-                <div className="text-muted-foreground flex-1 text-sm">
-                    {table.getFilteredSelectedRowModel().rows.length} of{" "}
-                    {table.getFilteredRowModel().rows.length} row(s) selected.
+            <div className="flex items-center justify-between py-4">
+                <div className="text-muted-foreground text-sm">
+                    Menampilkan {data.length} dari {total} obat
                 </div>
-                <div className="space-x-2">
+                <div className="flex items-center space-x-2">
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => table.previousPage()}
-                        disabled={!table.getCanPreviousPage()}
+                        onClick={() => onPageChange(currentPage - 1)}
+                        disabled={currentPage <= 1 || loading}
                     >
                         Previous
                     </Button>
+                    <span className="text-sm">
+                        Halaman {currentPage}
+                    </span>
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => table.nextPage()}
-                        disabled={!table.getCanNextPage()}
+                        onClick={() => onPageChange(currentPage + 1)}
+                        disabled={data.length === 0 || loading}
                     >
                         Next
                     </Button>

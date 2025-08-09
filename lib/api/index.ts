@@ -4,6 +4,10 @@ export { obatService } from './obat'
 export { purchaseOrderService } from './purchase-order'
 export { reportsService } from './reports'
 
+// Export new services
+export * from './obat-management'
+export * from './user-management'
+
 // Export types
 export type { Obat, ObatWithSupplier, PaginationParams, PaginatedResponse } from './obat'
 export type { PurchaseOrder, CreatePurchaseOrder, PurchaseOrderParams } from './purchase-order'

@@ -14,9 +14,10 @@ type RpcResult = {
 const ITEMS_PER_PAGE = 8; // Jumlah item per halaman
 
 // Hapus 'searchParams' dari parameter fungsi
-export default async function InformasiPOPage({ searchParams }: { searchParams?: { page?: string }; }) {
+export default async function InformasiPOPage({ searchParams }: { searchParams?: Promise<{ page?: string }> }) {
     const supabase = createClient();
-    const currentPage = Number(searchParams?.page) || 1;
+    const resolvedSearchParams = await searchParams;
+    const currentPage = Number(resolvedSearchParams?.page) || 1;
 
     // Langsung panggil RPC untuk mengambil semua data
     const { data: allOrders, error } = await supabase

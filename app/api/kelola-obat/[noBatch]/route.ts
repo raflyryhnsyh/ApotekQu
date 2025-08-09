@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 
-interface RouteParams {
-    params: {
-        noBatch: string;
-    };
-}
-
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ noBatch: string }> }) {
     try {
         const supabase = await createClient();
         const { noBatch } = await params;
@@ -71,7 +65,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ noBatch: string }> }) {
     try {
         const supabase = await createClient();
         const { noBatch } = await params;
@@ -193,7 +187,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ noBatch: string }> }) {
     try {
         const supabase = await createClient();
         const { noBatch } = await params;

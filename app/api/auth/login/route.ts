@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
         // Get user profile from pengguna table
         const { data: profile, error: profileError } = await supabase
             .from('pengguna')
-            .select('id, email, full_name, role, dibuat_pada, password')
+            .select('id, email, full_name, role, dibuat_pada')
             .eq('id', authData.user.id)
             .single()
 

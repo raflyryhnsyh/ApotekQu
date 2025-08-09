@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { Edit2, Trash2, Plus, X } from "lucide-react";
-import { createClient } from "@/utils/supabase/client";
 import { Pegawai } from "@/types/APA";
+import { fetchPegawai, createUser, updateUser, deleteUser, UserResponse } from "@/lib/api/user-management";
 
 export default function KelolaPegawaiPage() {
     const [loading, setLoading] = useState(false);
@@ -26,35 +26,17 @@ export default function KelolaPegawaiPage() {
         tanggal_dibuat: ""
     });
 
-    const supabase = createClient();
-
-    // Fetch data pegawai dari database
+    // Fetch data pegawai dari API
     const fetchPegawaiData = async () => {
         try {
-            console.log('Fetching pegawai data...'); // Debug log
-
-            const { data, error } = await supabase
-                .from('pengguna')
-                .select('id, full_name, email, dibuat_pada, role')
-                .eq('role', 'Pegawai')
-                .order('dibuat_pada', { ascending: false });
-
-            console.log('Supabase response:', { data, error }); // Debug log
-
-            if (error) {
-                console.error('Supabase error:', error);
-                throw error;
-            }
-
-            const formattedData: Pegawai[] = data.map(item => ({
+            const data = await fetchPegawai(); // Menggunakan API fetchPegawai
+            const formattedData: Pegawai[] = data.map((item: UserResponse) => ({
                 id: item.id,
-                nama: item.full_name,
-                username: item.email?.replace('@apotekqu.com', '') || '',
+                nama: item.nama,
+                username: item.username,
                 email: item.email,
-                tanggal_dibuat: new Date(item.dibuat_pada).toLocaleDateString('id-ID')
+                tanggal_dibuat: item.tanggal_dibuat
             }));
-
-            console.log('Formatted data:', formattedData); // Debug log
             setPegawaiData(formattedData);
         } catch (error) {
             console.error('Error fetching pegawai data:', error);
@@ -135,88 +117,34 @@ export default function KelolaPegawaiPage() {
     };
 
     const handleSavePegawai = async () => {
-        if (!validateForm()) {
-            return;
-        }
+        if (!validateForm()) return;
 
         setLoading(true);
-
         try {
-            const email = `${currentPegawai.username}@apotekqu.com`;
-
-            if (editMode) {
-                // Update existing pegawai
+            if (editMode && currentPegawai.id) {
+                // UPDATE - Menggunakan API updateUser
                 const updateData = {
-                    full_name: currentPegawai.nama,
-                    email: email,
-                    username: currentPegawai.username
+                    nama: currentPegawai.nama,
+                    username: currentPegawai.username,
+                    ...(currentPegawai.password && { password: currentPegawai.password })
                 };
-
-                const { error } = await supabase
-                    .from('pengguna')
-                    .update(updateData)
-                    .eq('id', currentPegawai.id);
-
-                if (error) {
-                    console.error('Update error:', error);
-                    throw error;
-                }
+                await updateUser(currentPegawai.id, updateData);
             } else {
-                const testUserId = "82c09b44-85ec-4bd2-967b-2ecd6d1bc10f";
-
-                const newUser = {
-                    id: testUserId, // Gunakan ID yang sudah ada
-                    full_name: currentPegawai.nama,
-                    email: email,
-                    role: 'Pegawai',
-                    dibuat_pada: new Date().toISOString()
+                // CREATE - Menggunakan API createUser
+                const newUserData = {
+                    nama: currentPegawai.nama,
+                    username: currentPegawai.username,
+                    password: currentPegawai.password,
+                    role: 'Pegawai'
                 };
-
-                console.log('Creating user in pengguna table with existing auth ID:', newUser);
-
-                const { data: insertData, error: insertError } = await supabase
-                    .from('pengguna')
-                    .insert([newUser]);
-
-                if (insertError) {
-                    console.error('Insert error:', insertError);
-                    throw insertError;
-                }
-
-                console.log('User created successfully:', insertData);
+                await createUser(newUserData);
             }
 
-            // Refresh data
-            await fetchPegawaiData();
+            await fetchPegawaiData(); // Refresh data
             setShowModal(false);
             resetForm();
-
         } catch (error: any) {
-            console.error('Full error object:', error);
-            console.error('Error message:', error.message);
-            console.error('Error code:', error.code);
-            console.error('Error status:', error.status);
-
-            let errorMessage = 'Terjadi kesalahan saat menyimpan data';
-
-            // Handle specific Supabase auth errors
-            if (error.message?.includes('User already registered')) {
-                errorMessage = 'Email sudah terdaftar di sistem';
-            } else if (error.message?.includes('Invalid email')) {
-                errorMessage = 'Format email tidak valid';
-            } else if (error.message?.includes('Password should be at least')) {
-                errorMessage = 'Password minimal 6 karakter';
-            } else if (error.message?.includes('signup is disabled')) {
-                errorMessage = 'Pendaftaran user baru sedang dinonaktifkan';
-            } else if (error.message?.includes('Database error saving new user')) {
-                errorMessage = 'Error saat menyimpan ke database auth';
-            } else if (error.code === '23505') {
-                errorMessage = 'Data duplikat - email atau username sudah ada';
-            } else if (error.message?.includes('duplicate key')) {
-                errorMessage = 'Email atau username sudah terdaftar';
-            } else if (error.message) {
-                errorMessage = error.message;
-            }
+            console.error('Error saving pegawai:', error);
         } finally {
             setLoading(false);
         }
@@ -224,26 +152,9 @@ export default function KelolaPegawaiPage() {
 
     const handleDeletePegawai = async (id: string) => {
         setLoading(true);
-
         try {
-            // Delete from pengguna table first
-            const { error: dbError } = await supabase
-                .from('pengguna')
-                .delete()
-                .eq('id', id);
-
-            if (dbError) {
-                console.error('Delete error:', dbError);
-                throw dbError;
-            }
-
-            // Note: Cannot delete from auth.users using client-side code
-            // The auth user will remain but without pengguna record
-            // This is by design for security reasons
-
-            // Refresh data
-            await fetchPegawaiData();
-
+            await deleteUser(id); // Menggunakan API deleteUser
+            await fetchPegawaiData(); // Refresh data
         } catch (error: any) {
             console.error('Error deleting pegawai:', error);
         } finally {
@@ -345,7 +256,7 @@ export default function KelolaPegawaiPage() {
 
             {/* Delete Confirmation Modal */}
             {deleteId !== null && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-4">
                         <div className="p-6 text-center">
                             <h3 className="text-md font-semibold text-gray-900">Hapus Pegawai?</h3>
@@ -373,7 +284,7 @@ export default function KelolaPegawaiPage() {
 
             {/* Add/Edit Modal */}
             {showModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
+                <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
                         <div className="flex justify-between items-center p-6 border-b border-gray-200">
                             <h3 className="text-lg font-semibold text-gray-900">

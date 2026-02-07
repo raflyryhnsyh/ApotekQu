@@ -243,7 +243,7 @@ export default function APAPage() {
                         <h3 className="text-sm font-medium text-gray-700 mb-2">Jumlah Obat Terjual</h3>
                         <p className="text-3xl font-bold text-gray-900">
                             {dataLoading ? (
-                                <div className="animate-pulse bg-gray-300 h-8 w-16 rounded"></div>
+                                <span className="inline-block animate-pulse bg-gray-300 h-8 w-16 rounded"></span>
                             ) : (
                                 dashboardData?.statistics.total_medicines_sold || 0
                             )}
@@ -255,7 +255,7 @@ export default function APAPage() {
                         <h3 className="text-sm font-medium text-gray-700 mb-2">Total Penjualan</h3>
                         <p className="text-3xl font-bold text-gray-900">
                             {dataLoading ? (
-                                <div className="animate-pulse bg-gray-300 h-8 w-32 rounded"></div>
+                                <span className="inline-block animate-pulse bg-gray-300 h-8 w-32 rounded"></span>
                             ) : (
                                 formatCurrency(dashboardData?.statistics.total_sales || 0)
                             )}
@@ -267,7 +267,7 @@ export default function APAPage() {
                         <h3 className="text-sm font-medium text-gray-700 mb-2">Total Keuntungan</h3>
                         <p className="text-3xl font-bold text-gray-900">
                             {dataLoading ? (
-                                <div className="animate-pulse bg-gray-300 h-8 w-32 rounded"></div>
+                                <span className="inline-block animate-pulse bg-gray-300 h-8 w-32 rounded"></span>
                             ) : (
                                 formatCurrency(dashboardData?.statistics.estimated_profit || 0)
                             )}
@@ -279,7 +279,7 @@ export default function APAPage() {
                         <h3 className="text-sm font-medium text-gray-700 mb-2">Total Pengeluaran</h3>
                         <p className="text-3xl font-bold text-gray-900">
                             {dataLoading ? (
-                                <div className="animate-pulse bg-gray-300 h-8 w-32 rounded"></div>
+                                <span className="inline-block animate-pulse bg-gray-300 h-8 w-32 rounded"></span>
                             ) : (
                                 formatCurrency(dashboardData?.statistics.total_purchases || 0)
                             )}

@@ -37,7 +37,7 @@ export const UserDropdown = () => {
 
     return (
         <>
-            <DropdownMenu>
+            <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                     <Button className="hidden md:flex rounded-full h-10 w-10 bg-green-600 hover:bg-green-700">
                         <Settings className="h-4 w-4 text-white" />

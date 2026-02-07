@@ -5,7 +5,6 @@ export { purchaseOrderService } from './purchase-order'
 export { reportsService } from './reports'
 
 // Export new services
-export * from './obat-management'
 export * from './user-management'
 export * from './kelola-obat'
 export * from './suppliers'

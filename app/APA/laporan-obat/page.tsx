@@ -214,10 +214,26 @@ export default function LaporanPage() {
   });
 
   // Date filter state
-  const [dateFilter] = useState<DateFilter>({
+  const [dateFilter, setDateFilter] = useState<DateFilter>({
     startDate: `${new Date().getFullYear()}-01-01`,
     endDate: new Date().toISOString().split('T')[0]
   });
+
+  // Handler untuk update filter tanggal
+  const handleDateChange = (type: 'startDate' | 'endDate', value: string) => {
+    setDateFilter(prev => ({
+      ...prev,
+      [type]: value
+    }));
+  };
+
+  // Handler untuk apply filter
+  const applyFilter = () => {
+    setLoading(true);
+    Promise.all([fetchSalesData(), fetchPurchaseData()]).finally(() => {
+      setLoading(false);
+    });
+  };
 
   // Fetch detailed data for specific product
   const fetchPenjualanDetails = async (productId: string, productName: string) => {
@@ -268,8 +284,19 @@ export default function LaporanPage() {
       if (response.success && response.data?.data) {
         const details: PembelianDetail[] = [];
         let counter = 1;
+        
+        // Parse filter dates for comparison
+        const filterStartDate = new Date(dateFilter.startDate);
+        const filterEndDate = new Date(dateFilter.endDate);
+        filterEndDate.setHours(23, 59, 59, 999); // Include end of day
 
         (response.data.data as PurchaseOrderResponse[]).forEach((purchase) => {
+          // Filter by date range
+          const purchaseDate = new Date(purchase.dibuat_pada);
+          if (purchaseDate < filterStartDate || purchaseDate > filterEndDate) {
+            return; // Skip purchases outside date range
+          }
+
           purchase.detail_purchase_order?.forEach((detail) => {
             // Check multiple possible data structures for product ID
             let matchesProduct = false;
@@ -379,10 +406,26 @@ export default function LaporanPage() {
 
       if (response.success && response.data?.data) {
         console.log('Purchase data found:', response.data.data.length, 'items');
+        
+        // Parse filter dates for comparison
+        const filterStartDate = new Date(dateFilter.startDate);
+        const filterEndDate = new Date(dateFilter.endDate);
+        filterEndDate.setHours(23, 59, 59, 999); // Include end of day
+        
+        console.log('Date filter:', {
+          start: filterStartDate.toISOString(),
+          end: filterEndDate.toISOString()
+        });
 
         // First, collect all unique product IDs
         const productIds = new Set<string>();
         (response.data.data as PurchaseOrderResponse[]).forEach((purchase) => {
+          // Filter by date range
+          const purchaseDate = new Date(purchase.dibuat_pada);
+          if (purchaseDate < filterStartDate || purchaseDate > filterEndDate) {
+            return; // Skip purchases outside date range
+          }
+
           purchase.detail_purchase_order?.forEach((detail) => {
             if (detail.penyedia_produk?.obat?.id) {
               productIds.add(detail.penyedia_produk.obat.id);
@@ -403,7 +446,14 @@ export default function LaporanPage() {
         }>();
 
         response.data.data.forEach((purchase: PurchaseOrderResponse) => {
-          console.log('Processing purchase:', purchase.id, 'with details:', purchase.detail_purchase_order?.length || 0);
+          // Filter by date range
+          const purchaseDate = new Date(purchase.dibuat_pada);
+          if (purchaseDate < filterStartDate || purchaseDate > filterEndDate) {
+            console.log('Skipping purchase outside date range:', purchase.id, purchaseDate.toISOString());
+            return; // Skip purchases outside date range
+          }
+
+          console.log('Processing purchase:', purchase.id, 'date:', purchaseDate.toISOString(), 'with details:', purchase.detail_purchase_order?.length || 0);
 
           purchase.detail_purchase_order?.forEach((detail) => {
             console.log('Detail structure:', detail);
@@ -467,12 +517,13 @@ export default function LaporanPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateFilter]);
 
-  // Load data on component mount and when date filter changes
+  // Load data on component mount with initial filter
   useEffect(() => {
-    Promise.all([fetchSalesData(), fetchPurchaseData()]);
-  }, [fetchSalesData, fetchPurchaseData]);
+    applyFilter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Calculate totals
   const totalPenjualan = penjualanData.reduce((acc, item) => acc + item.totalPenjualan, 0);
@@ -539,7 +590,45 @@ export default function LaporanPage() {
   }
 
   return (
-    <div>
+    <div className="space-y-6">
+      {/* Filter Section */}
+      <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <h2 className="font-semibold text-lg text-gray-800 mb-4">Filter Laporan</h2>
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tanggal Mulai
+            </label>
+            <input
+              type="date"
+              value={dateFilter.startDate}
+              onChange={(e) => handleDateChange('startDate', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tanggal Akhir
+            </label>
+            <input
+              type="date"
+              value={dateFilter.endDate}
+              onChange={(e) => handleDateChange('endDate', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={applyFilter}
+            disabled={loading}
+            className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-md font-medium transition-colors"
+          >
+            {loading ? 'Memuat...' : 'Terapkan Filter'}
+          </button>
+        </div>
+        <p className="text-sm text-gray-500 mt-3">
+          Menampilkan data dari {new Date(dateFilter.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} sampai {new Date(dateFilter.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+        </p>
+      </section>
 
       {/* Error State */}
       {error && (
@@ -554,7 +643,7 @@ export default function LaporanPage() {
           <div>
             <h2 className="font-semibold text-lg text-gray-800">Laporan Penjualan</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Tanggal: {new Date(dateFilter.startDate).toLocaleDateString('id-ID')} sampai {new Date(dateFilter.endDate).toLocaleDateString('id-ID')}
+              Periode: {new Date(dateFilter.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} - {new Date(dateFilter.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
           <button
@@ -630,7 +719,7 @@ export default function LaporanPage() {
           <div>
             <h2 className="font-semibold text-lg text-gray-800">Laporan Pembelian</h2>
             <p className="text-sm text-gray-500 mt-1">
-              Tanggal: {new Date(dateFilter.startDate).toLocaleDateString('id-ID')} sampai {new Date(dateFilter.endDate).toLocaleDateString('id-ID')}
+              Periode: {new Date(dateFilter.startDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} - {new Date(dateFilter.endDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
           <button

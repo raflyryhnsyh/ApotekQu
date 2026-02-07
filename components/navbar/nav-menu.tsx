@@ -51,11 +51,6 @@ const PegawaiNavMenu = (props: NavigationMenuProps) => (
                 </NavigationMenuLink>
             </NavigationMenuItem>
             <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                    <Link href="/pegawai/obat-master" className="font-medium">Obat Master</Link>
-                </NavigationMenuLink>
-            </NavigationMenuItem>
-            <NavigationMenuItem>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button

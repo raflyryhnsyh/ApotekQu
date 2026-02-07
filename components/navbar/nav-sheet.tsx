@@ -38,13 +38,6 @@ export const NavigationSheet = () => {
                         Home
                     </Link>
 
-                    <Link
-                        href="/obat-master"
-                        className="block px-4 py-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground rounded-md transition-colors"
-                    >
-                        Obat Master
-                    </Link>
-
                     <div className="space-y-1">
                         <button
                             onClick={toggleDropdown}

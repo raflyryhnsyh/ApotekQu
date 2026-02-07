@@ -15,21 +15,39 @@ import { Trash2, AlertTriangle, Loader2 } from "lucide-react"
 import { PengelolaanObat } from "./data-table"
 
 interface DataDeleteProps {
-    obat: PengelolaanObat
-    onDelete: (noBatch: string) => void
+    data?: {
+        nomor_batch: string
+        nama_obat: string
+    }
+    obat?: PengelolaanObat
+    onDelete?: (noBatch: string) => void
+    onSuccess?: () => void
     open?: boolean
     onOpenChange?: (open: boolean) => void
 }
 
-export function DataDelete({ obat, onDelete, open: externalOpen, onOpenChange: externalOnOpenChange }: DataDeleteProps) {
+export function DataDelete({ data, obat, onDelete, onSuccess, open: externalOpen, onOpenChange: externalOnOpenChange }: DataDeleteProps) {
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    
+    // Support both data formats
+    const noBatch = data?.nomor_batch || obat?.noBatch || ""
+    const namaObat = data?.nama_obat || obat?.nama || ""
 
     const handleDelete = async () => {
         setIsLoading(true)
 
         try {
-            await onDelete(obat.noBatch)
+            if (onDelete) {
+                await onDelete(noBatch)
+            } else if (onSuccess) {
+                // Call API directly
+                const response = await fetch(`/api/kelola-obat/${noBatch}`, {
+                    method: 'DELETE'
+                })
+                if (!response.ok) throw new Error('Failed to delete')
+                await onSuccess()
+            }
             setOpen(false)
             if (externalOnOpenChange) {
                 externalOnOpenChange(false)
@@ -72,9 +90,8 @@ export function DataDelete({ obat, onDelete, open: externalOpen, onOpenChange: e
                         Anda akan menghapus obat:
                     </p>
                     <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                        <p className="font-semibold text-lg">{obat.nama}</p>
-                        <p className="text-sm text-gray-600">No. Batch: {obat.noBatch}</p>
-                        <p className="text-sm text-gray-600">Stok: {obat.totalStok} {obat.satuan}</p>
+                        <p className="font-semibold text-lg">{namaObat}</p>
+                        <p className="text-sm text-gray-600">No. Batch: {noBatch}</p>
                     </div>
                     <p className="text-sm text-red-600 font-medium">
                         Data yang dihapus tidak dapat dikembalikan.

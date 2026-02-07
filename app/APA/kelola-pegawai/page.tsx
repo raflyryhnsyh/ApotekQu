@@ -12,6 +12,11 @@ export default function KelolaPegawaiPage() {
     const [deleteId, setDeleteId] = useState<string | null>(null);
     const [errors, setErrors] = useState<{ nama?: string; username?: string; password?: string }>({});
     const [pegawaiData, setPegawaiData] = useState<Pegawai[]>([]);
+    const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ 
+        show: false, 
+        message: '', 
+        type: 'success' 
+    });
     const [currentPegawai, setCurrentPegawai] = useState<{
         id: string | null;
         nama: string;
@@ -25,6 +30,14 @@ export default function KelolaPegawaiPage() {
         password: "",
         tanggal_dibuat: ""
     });
+
+    // Show toast notification
+    const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => {
+            setToast({ show: false, message: '', type: 'success' });
+        }, 3000);
+    };
 
     // Fetch data pegawai dari API
     const fetchPegawaiData = async () => {
@@ -143,8 +156,38 @@ export default function KelolaPegawaiPage() {
             await fetchPegawaiData(); // Refresh data
             setShowModal(false);
             resetForm();
+            
+            // Show success notification
+            showToast(
+                editMode ? 'Pegawai berhasil diperbarui' : 'Pegawai berhasil ditambahkan',
+                'success'
+            );
         } catch (error: unknown) {
             console.error('Error saving pegawai:', error);
+            
+            // Extract error message
+            let errorMessage = '';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            } else {
+                errorMessage = 'Terjadi kesalahan saat menyimpan data';
+            }
+
+            // Map API errors to field errors with consistent messages
+            const lowerErrorMsg = errorMessage.toLowerCase();
+            
+            if (lowerErrorMsg.includes('username') || lowerErrorMsg.includes('email')) {
+                setErrors(prev => ({ ...prev, username: "Username sudah digunakan" }));
+            } else if (lowerErrorMsg.includes('nama') || lowerErrorMsg.includes('name')) {
+                setErrors(prev => ({ ...prev, nama: "Nama tidak valid" }));
+            } else if (lowerErrorMsg.includes('password')) {
+                setErrors(prev => ({ ...prev, password: "Password tidak valid" }));
+            } else {
+                // Generic error - show in first available field
+                setErrors(prev => ({ ...prev, nama: errorMessage }));
+            }
         } finally {
             setLoading(false);
         }
@@ -155,8 +198,12 @@ export default function KelolaPegawaiPage() {
         try {
             await deleteUser(id); // Menggunakan API deleteUser
             await fetchPegawaiData(); // Refresh data
+            
+            // Show success notification
+            showToast('Pegawai berhasil dihapus', 'success');
         } catch (error: unknown) {
             console.error('Error deleting pegawai:', error);
+            showToast('Gagal menghapus pegawai', 'error');
         } finally {
             setLoading(false);
             setDeleteId(null);
@@ -176,17 +223,44 @@ export default function KelolaPegawaiPage() {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-                <p className="mt-4 text-lg text-gray-600">Loading...</p>
-            </div>
-        );
-    }
-
     return (
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="bg-gray-50 p-6">
+            {/* Toast Notification */}
+            {toast.show && (
+                <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-top-5">
+                    <div className={`rounded-lg shadow-lg p-4 flex items-center space-x-3 min-w-[300px] ${
+                        toast.type === 'success' 
+                            ? 'bg-green-50 border border-green-200' 
+                            : 'bg-red-50 border border-red-200'
+                    }`}>
+                        {toast.type === 'success' ? (
+                            <svg className="w-6 h-6 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        ) : (
+                            <svg className="w-6 h-6 text-red-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        )}
+                        <p className={`text-sm font-medium ${
+                            toast.type === 'success' ? 'text-green-800' : 'text-red-800'
+                        }`}>
+                            {toast.message}
+                        </p>
+                        <button
+                            onClick={() => setToast({ show: false, message: '', type: 'success' })}
+                            className={`ml-auto flex-shrink-0 rounded-md p-1 hover:bg-opacity-20 transition-colors ${
+                                toast.type === 'success' 
+                                    ? 'text-green-600 hover:bg-green-600' 
+                                    : 'text-red-600 hover:bg-red-600'
+                            }`}
+                        >
+                            <X size={16} />
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="mb-6">
                 <div className="flex justify-between items-center">

@@ -26,9 +26,7 @@ interface PengadaanClientProps {
 export default function PengadaanClient({ initialKatalog }: PengadaanClientProps) {
     // STATE MANAGEMENT
     const { cart, addToCart, increment, decrement, clearCart } = useCartStore();
-    const [namaApotik, setNamaApotik] = useState("");
-    const [alamatApotik, setAlamatApotik] = useState("");
-    const [errors, setErrors] = useState<{ namaApotik?: boolean; alamatApotik?: boolean; cart?: boolean }>({});
+    const [errors, setErrors] = useState<{ cart?: boolean }>({});
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [showSuccessToast, setShowSuccessToast] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,8 +55,8 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
         const supabase = createClient();
 
         try {
-            // const { data: { user } } = await supabase.auth.getUser();
-            const user = "f7e7e2ad-ce8a-49a7-8813-384310284d86"
+            // Get authenticated user
+            const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 // Jika tidak ada user yang login, hentikan proses
                 alert("Sesi tidak ditemukan. Harap login kembali.");
@@ -74,8 +72,11 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
                     const { data: poData, error: poError } = await supabase
                         .from('purchase_order')
                         .insert({
-                            id_supplier: supplierId, total_bayar: totalBayarGroup, status: 'diproses', dibuat_pada: new Date().toISOString(), // dibuat_oleh: user.id
-                            dibuat_oleh: user
+                            id_supplier: supplierId,
+                            total_bayar: totalBayarGroup,
+                            status: 'dikirim',
+                            dibuat_pada: new Date().toISOString(),
+                            dibuat_oleh: user.id
                         })
                         .select('id').single();
 
@@ -95,8 +96,6 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
             );
 
             clearCart();
-            setNamaApotik("");
-            setAlamatApotik("");
             setShowSuccessToast(true);
 
         } catch (error) {
@@ -109,9 +108,7 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
 
     const handleSubmit = (event: FormEvent) => {
         event.preventDefault();
-        const newErrors: { namaApotik?: boolean; alamatApotik?: boolean; cart?: boolean } = {};
-        if (!namaApotik.trim()) newErrors.namaApotik = true;
-        if (!alamatApotik.trim()) newErrors.alamatApotik = true;
+        const newErrors: { cart?: boolean } = {};
         if (cart.length === 0) newErrors.cart = true;
 
         setErrors(newErrors);
@@ -154,35 +151,6 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
                 {/* Kolom Kanan: Sidebar */}
                 <form onSubmit={handleSubmit} className="w-1/4 sticky top-20 h-[calc(100vh-10rem)] flex flex-col gap-4 rounded-xl bg-white p-6 shadow-md border">
                     <h2 className="text-xl font-bold">Ringkasan Pembelian</h2>
-                    <div className="rounded border bg-gray-50 p-4">
-                        <div className="flex flex-col gap-2">
-                            <label htmlFor="namaApotik" className="font-bold text-sm">Nama Apotek:</label>
-                            <input
-                                id="namaApotik"
-                                type="text"
-                                placeholder="Nama Apotik"
-                                className={`border p-2 rounded text-sm ${errors.namaApotik ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
-                                value={namaApotik}
-                                onChange={(e) => {
-                                    setNamaApotik(e.target.value);
-                                    if (errors.namaApotik) setErrors({ ...errors, namaApotik: false });
-                                }}
-                            />
-                            <label htmlFor="alamatApotik" className="font-bold text-sm mt-2">Alamat:</label>
-                            <input
-                                id="alamatApotik"
-                                type="text"
-                                placeholder="Alamat Apotik"
-                                className={`border p-2 rounded text-sm ${errors.alamatApotik ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-300'}`}
-                                value={alamatApotik}
-                                onChange={(e) => {
-                                    setAlamatApotik(e.target.value);
-                                    if (errors.alamatApotik) setErrors({ ...errors, alamatApotik: false });
-                                }}
-                            />
-                            <p className="text-xs text-red-500 mt-1">*Wajib diisi</p>
-                        </div>
-                    </div>
                     <div className={`flex flex-col flex-1 overflow-y-auto rounded-md border ${errors.cart ? 'border-red-500 ring-1 ring-red-500' : 'border-gray-200'}`}>
                         {cart.length === 0 ? (
                             <div className="flex h-full items-center justify-center p-2">

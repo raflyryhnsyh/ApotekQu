@@ -1,13 +1,11 @@
 "use client";
 
-import { DataTableDemo } from '@/components/kelola-obat/data-table';
+import { PengelolaanObatNew } from '@/components/kelola-obat/pengelolaan-3-section';
 
 export default function PengelolaanPage() {
     return (
         <div className="flex flex-col min-h-screen">
-            <div className="container mx-auto py-6">
-                <DataTableDemo />
-            </div>
+            <PengelolaanObatNew />
         </div>
     );
 }

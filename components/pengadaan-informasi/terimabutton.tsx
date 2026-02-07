@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-import { ConfirmationDialog } from '@/components/ui/confirmationdialog'; // Pastikan path ini benar
+import { ConfirmationDialog } from '@/components/ui/confirmationdialog';
 import { SuccessToast } from '@/components/ui/successalert';
 
 interface TerimaBarangButtonProps {
@@ -13,38 +12,36 @@ interface TerimaBarangButtonProps {
 
 export function TerimaBarangButton({ status, orderId }: TerimaBarangButtonProps) {
     const router = useRouter();
-    const [isLoading, setIsLoading] = useState(false);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const isDisabled = status !== 'dikirim' || isLoading;
+    const [isLoading, setIsLoading] = useState(false);
     const [showSuccessToast, setShowSuccessToast] = useState(false);
+    const isDisabled = status !== 'dikirim' || isLoading;
 
     const handleConfirmReceive = async () => {
         setIsLoading(true);
         setIsDialogOpen(false);
-        const supabase = createClient();
 
         try {
-            // Dapatkan ID pengguna yang sedang login untuk dicatat
-            // const { data: { user } } = await supabase.auth.getUser();
-            // if (!user) throw new Error("Pengguna tidak terautentikasi.");
-            const user_id = "f7e7e2ad-ce8a-49a7-8813-384310284d86"; // Ganti dengan ID pengguna yang sesuai
-
-            // Panggil FUNGSI TUNGGAL di Supabase yang melakukan semua pekerjaan
-            const { error } = await supabase.rpc('terima_barang_po', {
-                po_id: orderId,
-                // user_id: user.id
-                user_id: user_id
+            const response = await fetch('/api/barang-diterima', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_po: orderId,
+                    tiba_pada: new Date().toISOString().split('T')[0],
+                    items: [] // Empty items - detail will be filled in Pengelolaan page
+                })
             });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Gagal menerima barang');
+            }
 
-            // Refresh data di halaman untuk menampilkan status baru
-            router.refresh();
             setShowSuccessToast(true);
-
+            router.refresh();
         } catch (error) {
-            console.error("Gagal memproses penerimaan barang:", error);
-            alert("Terjadi kesalahan saat memproses penerimaan barang.");
+            console.error('Error receiving goods:', error);
+            alert(error instanceof Error ? error.message : 'Gagal menerima barang');
         } finally {
             setIsLoading(false);
         }
@@ -53,7 +50,7 @@ export function TerimaBarangButton({ status, orderId }: TerimaBarangButtonProps)
     return (
         <>
             <button
-                onClick={() => setIsDialogOpen(true)} // Tombol ini HANYA membuka dialog
+                onClick={() => setIsDialogOpen(true)}
                 disabled={isDisabled}
                 className="rounded-lg bg-green-100 px-3 py-2 text-xs font-semibold text-green-800 transition hover:bg-green-200 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
             >
@@ -63,17 +60,18 @@ export function TerimaBarangButton({ status, orderId }: TerimaBarangButtonProps)
             <ConfirmationDialog
                 isOpen={isDialogOpen}
                 onClose={() => setIsDialogOpen(false)}
-                onConfirm={handleConfirmReceive} // Aksi utama dijalankan saat dikonfirmasi
+                onConfirm={handleConfirmReceive}
                 title="Konfirmasi Penerimaan Barang"
             >
                 <p>Apakah Anda yakin ingin mengonfirmasi penerimaan barang untuk pesanan ini?</p>
+                <p className="text-sm text-gray-600 mt-2">Anda dapat melengkapi detail obat nanti di halaman Pengelolaan Obat.</p>
             </ConfirmationDialog>
 
             <SuccessToast
                 isOpen={showSuccessToast}
                 onClose={() => setShowSuccessToast(false)}
             >
-                <p>Status pesanan berhasil diperbarui!</p>
+                <p>Barang berhasil diterima! Silakan cek Pengelolaan Obat untuk melengkapi detail.</p>
             </SuccessToast>
         </>
     );

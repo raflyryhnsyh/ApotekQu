@@ -26,8 +26,18 @@ import { updateKelolaObat, getKelolaObatByBatch } from "@/lib/api/kelola-obat"
 import { PengelolaanObat } from "./data-table"
 
 interface DataEditProps {
-    obat: PengelolaanObat
-    onEdit: () => void
+    data?: {
+        nomor_batch: string
+        nama_obat: string
+        stok_sekarang: number
+        satuan: string
+        harga_jual: number
+        kadaluarsa: string
+        nama_supplier: string
+    }
+    obat?: PengelolaanObat
+    onEdit?: () => void
+    onSuccess?: () => void
     open?: boolean
     onOpenChange?: (open: boolean) => void
 }
@@ -38,23 +48,21 @@ interface Supplier {
     alamat?: string
 }
 
-interface Obat {
-    id: string
-    nama_obat: string
-    kategori?: string
-    komposisi?: string
-}
-
-export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: externalOnOpenChange }: DataEditProps) {
+export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, onOpenChange: externalOnOpenChange }: DataEditProps) {
     const [open, setOpen] = useState(false)
 
     // Use external open state if provided, otherwise use internal
     const isOpen = externalOpen !== undefined ? externalOpen : open
     const handleOpenChange = externalOnOpenChange || setOpen
+    
+    // Support both data formats
+    const noBatch = data?.nomor_batch || obat?.noBatch || ""
+    const namaObat = data?.nama_obat || obat?.nama || ""
     const [formData, setFormData] = useState({
         nama_obat: "",
         komposisi: "",
         kategori: "",
+        nomor_batch: "",
         kadaluarsa: "",
         stok_sekarang: "",
         satuan: "",
@@ -63,19 +71,22 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
     })
     const [isLoading, setIsLoading] = useState(false)
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
-    const [obatList, setObatList] = useState<Obat[]>([])
     const [loadingSuppliers, setLoadingSuppliers] = useState(false)
-    const [loadingObat, setLoadingObat] = useState(false)
     const [loadingData, setLoadingData] = useState(false)
 
     // Fetch actual obat data from API
     const fetchObatData = useCallback(async () => {
+        if (!noBatch) {
+            console.log('❌ No batch number provided')
+            return
+        }
+        
         try {
             setLoadingData(true)
-            console.log('Fetching data for batch:', obat.noBatch) // Debug log
-            const response = await getKelolaObatByBatch(obat.noBatch)
+            console.log('🔍 Fetching data for batch:', noBatch)
+            const response = await getKelolaObatByBatch(noBatch)
 
-            console.log('API Response:', response) // Debug log
+            console.log('📦 API Response:', response)
 
             if (response.success && response.data) {
                 // Add a type for the data object
@@ -90,28 +101,42 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
                     supplier_id?: string
                 }
                 const data = response.data as ObatApiResponse
-                console.log('Setting form data:', data) // Debug log
+                console.log('✅ Data received:', {
+                    nama_obat: data.nama_obat,
+                    komposisi: data.komposisi,
+                    kategori: data.kategori,
+                    stok_sekarang: data.stok_sekarang,
+                    satuan: data.satuan,
+                    harga_jual: data.harga_jual,
+                    supplier_id: data.supplier_id
+                })
 
                 // Format date for input[type="date"] (YYYY-MM-DD)
                 const formattedDate = data.kadaluarsa ? new Date(data.kadaluarsa).toISOString().split('T')[0] : ""
 
-                setFormData({
+                const newFormData = {
                     nama_obat: data.nama_obat || "",
                     komposisi: data.komposisi || "",
                     kategori: data.kategori || "",
+                    nomor_batch: noBatch,
                     kadaluarsa: formattedDate,
                     stok_sekarang: data.stok_sekarang?.toString() || "",
                     satuan: data.satuan || "",
                     harga_jual: data.harga_jual?.toString() || "",
                     supplier_id: data.supplier_id || ""
-                })
+                }
+                
+                console.log('Setting form data:', newFormData)
+                setFormData(newFormData)
+            } else {
+                console.log('No data in response or success=false')
             }
         } catch (error) {
             console.error('Error fetching obat data:', error)
         } finally {
             setLoadingData(false)
         }
-    }, [obat.noBatch])
+    }, [noBatch])
 
     const fetchSuppliers = useCallback(async () => {
         try {
@@ -130,35 +155,32 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
         }
     }, [])
 
-    const fetchObatList = useCallback(async () => {
-        try {
-            setLoadingObat(true)
-            const response = await fetch('/api/obat')
-            if (response.ok) {
-                const result = await response.json()
-                if (result.success) {
-                    setObatList(result.data)
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching obat list:', error)
-        } finally {
-            setLoadingObat(false)
-        }
-    }, [])
-
     // Fetch data when dialog opens
     useEffect(() => {
-        if (isOpen && obat) {
-            fetchObatData()
+        if (isOpen) {
+            // If noBatch exists, fetch from API
+            if (noBatch) {
+                fetchObatData()
+            } else if (data) {
+                // If no batch but has data prop, pre-populate form from prop
+                setFormData({
+                    nama_obat: data.nama_obat || "",
+                    komposisi: "",
+                    kategori: "",
+                    nomor_batch: data.nomor_batch || "",
+                    kadaluarsa: data.kadaluarsa || "",
+                    stok_sekarang: data.stok_sekarang?.toString() || "",
+                    satuan: data.satuan || "",
+                    harga_jual: data.harga_jual?.toString() || "",
+                    supplier_id: ""
+                })
+            }
+            
             if (suppliers.length === 0) {
                 fetchSuppliers()
             }
-            if (obatList.length === 0) {
-                fetchObatList()
-            }
         }
-    }, [isOpen, obat, fetchObatData, suppliers.length, obatList.length, fetchSuppliers, fetchObatList])
+    }, [isOpen, noBatch, data, fetchObatData, suppliers.length, fetchSuppliers])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -191,10 +213,14 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
                 supplier_id: formData.supplier_id || undefined
             }
 
-            await updateKelolaObat(obat.noBatch, dataToSubmit)
+            await updateKelolaObat(noBatch, dataToSubmit)
 
             handleOpenChange(false)
-            onEdit() // Refresh parent data
+            if (onEdit) {
+                onEdit() // Refresh parent data
+            } else if (onSuccess) {
+                await onSuccess()
+            }
             alert("Obat berhasil diupdate!")
 
         } catch (error: unknown) {
@@ -229,7 +255,7 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="text-2xl font-bold text-left">
-                        Edit Obat - {obat.nama}
+                        Edit Obat - {namaObat}
                     </DialogTitle>
                 </DialogHeader>
 
@@ -248,38 +274,14 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
                                 <Label htmlFor="edit-nama-obat" className="text-base font-medium">
                                     Nama Obat <span className="text-red-500">*</span>
                                 </Label>
-                                <Select
+                                <Input
+                                    id="edit-nama-obat"
                                     value={formData.nama_obat}
-                                    onValueChange={(value) => handleInputChange("nama_obat", value)}
+                                    onChange={(e) => handleInputChange("nama_obat", e.target.value)}
+                                    placeholder="Nama obat"
+                                    className="h-12 text-base border-gray-300 rounded-lg"
                                     required
-                                    disabled={loadingObat}
-                                >
-                                    <SelectTrigger className="h-12 text-base border-gray-300 rounded-lg">
-                                        <SelectValue placeholder={
-                                            loadingObat ? "Memuat daftar obat..." : "Pilih nama obat"
-                                        } />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {loadingObat ? (
-                                            <SelectItem value="loading" disabled>
-                                                <div className="flex items-center gap-2">
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                    Memuat obat...
-                                                </div>
-                                            </SelectItem>
-                                        ) : obatList.length > 0 ? (
-                                            obatList.map((obat) => (
-                                                <SelectItem key={obat.id} value={obat.nama_obat}>
-                                                    {obat.nama_obat}
-                                                </SelectItem>
-                                            ))
-                                        ) : (
-                                            <SelectItem value="no-data" disabled>
-                                                Tidak ada data obat
-                                            </SelectItem>
-                                        )}
-                                    </SelectContent>
-                                </Select>
+                                />
                             </div>
 
                             {/* Komposisi */}
@@ -317,16 +319,18 @@ export function DataEdit({ obat, onEdit, open: externalOpen, onOpenChange: exter
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                {/* Nomor Batch - Read Only */}
+                                {/* Nomor Batch */}
                                 <div className="grid gap-3">
                                     <Label htmlFor="edit-nomor-batch" className="text-base font-medium">
-                                        Nomor Batch
+                                        Nomor Batch <span className="text-red-500">*</span>
                                     </Label>
                                     <Input
                                         id="edit-nomor-batch"
-                                        value={obat.noBatch}
-                                        className="h-12 text-base border-gray-300 rounded-lg bg-gray-100"
-                                        disabled
+                                        value={formData.nomor_batch || noBatch}
+                                        onChange={(e) => handleInputChange("nomor_batch", e.target.value)}
+                                        placeholder="Nomor batch"
+                                        className="h-12 text-base border-gray-300 rounded-lg"
+                                        required
                                     />
                                 </div>
 

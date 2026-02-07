@@ -25,7 +25,8 @@ import { Plus, Loader2 } from "lucide-react"
 import { createKelolaObat } from "@/lib/api/kelola-obat"
 
 interface DataAddProps {
-    onAdd: () => void
+    onAdd?: () => void
+    onSuccess?: () => void
 }
 
 interface Supplier {
@@ -41,7 +42,7 @@ interface Obat {
     komposisi?: string
 }
 
-export function DataAdd({ onAdd }: DataAddProps) {
+export function DataAdd({ onAdd, onSuccess }: DataAddProps) {
     const [open, setOpen] = useState(false)
     const [formData, setFormData] = useState({
         nama_obat: "",
@@ -56,9 +57,7 @@ export function DataAdd({ onAdd }: DataAddProps) {
     })
     const [isLoading, setIsLoading] = useState(false)
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
-    const [obatList, setObatList] = useState<Obat[]>([])
     const [loadingSuppliers, setLoadingSuppliers] = useState(false)
-    const [loadingObat, setLoadingObat] = useState(false)
 
     const fetchSuppliers = useCallback(async () => {
         try {
@@ -77,32 +76,12 @@ export function DataAdd({ onAdd }: DataAddProps) {
         }
     }, [])
 
-    const fetchObatList = useCallback(async () => {
-        try {
-            setLoadingObat(true)
-            const response = await fetch('/api/obat')
-            if (response.ok) {
-                const result = await response.json()
-                if (result.success) {
-                    setObatList(result.data)
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching obat list:', error)
-        } finally {
-            setLoadingObat(false)
-        }
-    }, [])
-
-    // Fetch suppliers and obat list when dialog opens
+    // Fetch suppliers when dialog opens
     useEffect(() => {
         if (open && suppliers.length === 0) {
             fetchSuppliers()
         }
-        if (open && obatList.length === 0) {
-            fetchObatList()
-        }
-    }, [open, suppliers.length, obatList.length, fetchSuppliers, fetchObatList])
+    }, [open, suppliers.length, fetchSuppliers])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -153,7 +132,11 @@ export function DataAdd({ onAdd }: DataAddProps) {
             })
 
             setOpen(false)
-            onAdd() // Refresh parent data
+            if (onAdd) {
+                onAdd() // Refresh parent data
+            } else if (onSuccess) {
+                await onSuccess()
+            }
             alert("Obat berhasil ditambahkan!")
 
         } catch (error: unknown) {
@@ -193,38 +176,14 @@ export function DataAdd({ onAdd }: DataAddProps) {
                             <Label htmlFor="nama-obat" className="text-base font-medium">
                                 Nama Obat <span className="text-red-500">*</span>
                             </Label>
-                            <Select
+                            <Input
+                                id="nama-obat"
                                 value={formData.nama_obat}
-                                onValueChange={(value) => handleInputChange("nama_obat", value)}
+                                onChange={(e) => handleInputChange("nama_obat", e.target.value)}
+                                placeholder="Masukkan nama obat"
+                                className="h-12 text-base border-gray-300 rounded-lg"
                                 required
-                                disabled={loadingObat}
-                            >
-                                <SelectTrigger className="h-12 text-base border-gray-300 rounded-lg">
-                                    <SelectValue placeholder={
-                                        loadingObat ? "Memuat daftar obat..." : "Pilih nama obat"
-                                    } />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {loadingObat ? (
-                                        <SelectItem value="loading" disabled>
-                                            <div className="flex items-center gap-2">
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                                Memuat obat...
-                                            </div>
-                                        </SelectItem>
-                                    ) : obatList.length > 0 ? (
-                                        obatList.map((obat) => (
-                                            <SelectItem key={obat.id} value={obat.nama_obat}>
-                                                {obat.nama_obat}
-                                            </SelectItem>
-                                        ))
-                                    ) : (
-                                        <SelectItem value="no-data" disabled>
-                                            Tidak ada data obat
-                                        </SelectItem>
-                                    )}
-                                </SelectContent>
-                            </Select>
+                            />
                         </div>
 
                         {/* Komposisi */}

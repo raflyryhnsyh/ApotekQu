@@ -45,7 +45,7 @@ export async function middleware(req: NextRequest) {
     const apaOnlyRoutes = ['/APA', '/APA/kelola-pegawai', '/APA/laporan']
 
     // Routes yang hanya untuk pegawai
-    const pegawaiOnlyRoutes = ['/pegawai', '/pegawai/obat-master', '/pegawai/pengadaan', '/pegawai/pengadaan/buat-po', '/pegawai/pengadaan/informasi-po', '/pegawai/pengelolaan', '/pegawai/penjualan']
+    const pegawaiOnlyRoutes = ['/pegawai', '/pegawai/pengadaan', '/pegawai/pengadaan/buat-po', '/pegawai/pengadaan/informasi-po', '/pegawai/pengelolaan', '/pegawai/penjualan']
 
     const { data: { user }, error } = await supabase.auth.getUser()
 

@@ -30,9 +30,23 @@ export default async function PengadaanPage() {
     }
 
     // Data dari RPC sudah "flat", tinggal di-map untuk path gambar
-    const katalog: KatalogItem[] = (data as KatalogRpcResult[]).map(item => {
+    // Group by obat ID untuk menghindari duplikasi, ambil yang harga termurah
+    const uniqueData = (data as KatalogRpcResult[]).reduce((acc, item) => {
+        const existingItem = acc.find(i => i.nama_obat === item.nama_obat);
+        if (!existingItem || item.harga_beli < existingItem.harga_beli) {
+            const filtered = acc.filter(i => i.nama_obat !== item.nama_obat);
+            return [...filtered, item];
+        }
+        return acc;
+    }, [] as KatalogRpcResult[]);
+
+    const katalog: KatalogItem[] = uniqueData.map(item => {
         const namaObat = item.nama_obat;
-        const namaDasarObat = namaObat.replace(/\s+\d+.*mg/i, '').trim();
+        // Remove dosis/ukuran dan kata seperti Inhaler
+        const namaDasarObat = namaObat
+            .replace(/\s+\d+.*mg/i, '')
+            .replace(/\s+Inhaler/i, '')
+            .trim();
         const namaFolder = `${namaDasarObat} obat`;
 
         // Logika untuk menentukan ekstensi file

@@ -58,12 +58,12 @@ export function DataTableDemo() {
     const [deletingObat, setDeletingObat] = React.useState<PengelolaanObat | null>(null)
 
     // Function to fetch data from API
-    const fetchData = React.useCallback(async () => {
+    const fetchData = React.useCallback(async (search?: string) => {
         try {
             setLoading(true)
             setError(null)
             const response = await getKelolaObatData({
-                search: searchValue || undefined,
+                search: search || undefined,
                 limit: 100 // Get more data for better UX
             })
 
@@ -78,23 +78,21 @@ export function DataTableDemo() {
         } finally {
             setLoading(false)
         }
-    }, [searchValue])
+    }, [])
 
-    // Initial data fetch
+    // Initial data fetch only once on mount
     React.useEffect(() => {
         fetchData()
-    }, [fetchData])
+    }, []) // Empty dependency array - only run once
 
     // Search with debounce
     React.useEffect(() => {
         const timer = setTimeout(() => {
-            if (!loading) {
-                fetchData()
-            }
+            fetchData(searchValue)
         }, 500)
 
         return () => clearTimeout(timer)
-    }, [searchValue, fetchData, loading])
+    }, [searchValue, fetchData])
 
     // Function to calculate days until expiry
     const getDaysUntilExpiry = (expiryDate: string) => {
@@ -274,6 +272,11 @@ export function DataTableDemo() {
         getFilteredRowModel: getFilteredRowModel(),
         onColumnVisibilityChange: setColumnVisibility,
         onRowSelectionChange: setRowSelection,
+        initialState: {
+            pagination: {
+                pageSize: 10,
+            },
+        },
         state: {
             sorting,
             columnFilters,
@@ -299,7 +302,7 @@ export function DataTableDemo() {
                 <div className="flex items-center gap-2 text-red-600">
                     <AlertTriangle className="h-6 w-6" />
                     <span>{error}</span>
-                    <Button onClick={fetchData} size="sm" variant="outline">
+                    <Button onClick={() => fetchData()} size="sm" variant="outline">
                         Coba Lagi
                     </Button>
                 </div>
@@ -333,9 +336,10 @@ export function DataTableDemo() {
             </div>
 
             {/* Table */}
-            <div className="rounded-md border">
-                <Table>
-                    <TableHeader>
+            <div className="rounded-md border overflow-hidden">
+                <div className="overflow-x-auto min-h-[600px]">
+                    <Table className="w-full">
+                        <TableHeader>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => {
@@ -355,21 +359,33 @@ export function DataTableDemo() {
                     </TableHeader>
                     <TableBody>
                         {table.getRowModel().rows?.length ? (
-                            table.getRowModel().rows.map((row) => (
-                                <TableRow
-                                    key={row.id}
-                                    data-state={row.getIsSelected() && "selected"}
-                                >
-                                    {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id}>
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            ))
+                            <>
+                                {table.getRowModel().rows.map((row) => (
+                                    <TableRow
+                                        key={row.id}
+                                        data-state={row.getIsSelected() && "selected"}
+                                    >
+                                        {row.getVisibleCells().map((cell) => (
+                                            <TableCell key={cell.id}>
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                                {/* Add empty rows to maintain consistent height */}
+                                {Array.from({ length: Math.max(0, 10 - table.getRowModel().rows.length) }).map((_, index) => (
+                                    <TableRow key={`empty-${index}`} className="hover:bg-transparent">
+                                        {columns.map((_, cellIndex) => (
+                                            <TableCell key={cellIndex} className="h-[53px]">
+                                                &nbsp;
+                                            </TableCell>
+                                        ))}
+                                    </TableRow>
+                                ))}
+                            </>
                         ) : (
                             <TableRow>
                                 <TableCell
@@ -381,7 +397,8 @@ export function DataTableDemo() {
                             </TableRow>
                         )}
                     </TableBody>
-                </Table>
+                    </Table>
+                </div>
             </div>
 
             {/* Pagination */}

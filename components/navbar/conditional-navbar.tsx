@@ -15,7 +15,6 @@ export const ConditionalNavbar = () => {
         '/APA/laporan',
         // Pegawai routes
         '/pegawai',
-        '/pegawai/obat-master',
         '/pegawai/pengadaan/buat-po',
         '/pegawai/pengadaan/informasi-po',
         '/pegawai/pengelolaan',

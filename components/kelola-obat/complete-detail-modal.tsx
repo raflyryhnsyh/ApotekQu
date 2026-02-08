@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { DataEdit } from './data-edit';
+import { Toast, ToastType } from '@/components/ui/toast';
 
 interface IncompleteItem {
     id_barang_diterima: string;
@@ -28,6 +29,9 @@ export function CompleteDetailModal({ isOpen, onClose, onSuccess }: CompleteDeta
     const [incompleteItems, setIncompleteItems] = useState<IncompleteItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [editingItem, setEditingItem] = useState<IncompleteItem | null>(null);
+    const [showToast, setShowToast] = useState(false);
+    const [toastType, setToastType] = useState<ToastType>("success");
+    const [toastMessage, setToastMessage] = useState("");
 
     useEffect(() => {
         if (isOpen) {
@@ -45,7 +49,9 @@ export function CompleteDetailModal({ isOpen, onClose, onSuccess }: CompleteDeta
             setIncompleteItems(result.data || []);
         } catch (error) {
             console.error('Error fetching incomplete items:', error);
-            alert('Gagal mengambil data obat yang belum lengkap');
+            setToastType("error");
+            setToastMessage("Gagal mengambil data obat yang belum lengkap");
+            setShowToast(true);
         } finally {
             setIsLoading(false);
         }
@@ -75,7 +81,10 @@ export function CompleteDetailModal({ isOpen, onClose, onSuccess }: CompleteDeta
                     </DialogHeader>
 
                     {isLoading ? (
-                        <div className="text-center py-8">Memuat data...</div>
+                        <div className="flex flex-col items-center justify-center py-8">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
+                        </div>
                     ) : incompleteItems.length === 0 ? (
                         <div className="text-center py-8">
                             <p className="text-gray-600">Tidak ada obat yang perlu dilengkapi.</p>
@@ -120,9 +129,15 @@ export function CompleteDetailModal({ isOpen, onClose, onSuccess }: CompleteDeta
                         nama_obat: editingItem.nama_obat,
                         stok_sekarang: editingItem.jumlah_diterima,
                         satuan: '',
-                        harga_jual: 0,
+                        harga_jual: (editingItem as any).harga_satuan || 0,
                         kadaluarsa: '',
-                        nama_supplier: editingItem.nama_supplier
+                        nama_supplier: editingItem.nama_supplier,
+                        supplier_id: (editingItem as any).id_supplier,
+                        kategori: (editingItem as any).kategori || '',
+                        komposisi: (editingItem as any).komposisi || '',
+                        id_barang_diterima: editingItem.id_barang_diterima,
+                        id_pp: editingItem.id_pp,
+                        id_obat: editingItem.id_obat  // Added for batch generation
                     }}
                     open={true}
                     onOpenChange={(open) => {
@@ -131,6 +146,15 @@ export function CompleteDetailModal({ isOpen, onClose, onSuccess }: CompleteDeta
                     onSuccess={handleEditSuccess}
                 />
             )}
+            
+            <Toast
+                isOpen={showToast}
+                onClose={() => setShowToast(false)}
+                type={toastType}
+                title={toastType === "success" ? "Berhasil!" : "Gagal!"}
+            >
+                <p>{toastMessage}</p>
+            </Toast>
         </>
     );
 }

@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
                     nama_obat
                 )
             `)
+            .gt('stok_sekarang', 0)  // Filter out soft-deleted items (stok = 0)
             .order('kadaluarsa', { ascending: true });
 
         if (detailError) {

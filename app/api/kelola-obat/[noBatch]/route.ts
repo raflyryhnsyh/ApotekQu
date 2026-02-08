@@ -221,7 +221,67 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
             );
         }
 
-        // Delete detail_obat
+        // Check if this obat has been used in any transactions
+        
+        // 1. Check detail_penjualan
+        const { data: penjualanData, error: penjualanError } = await supabase
+            .from('detail_penjualan')
+            .select('id')
+            .eq('nomor_batch', noBatch)
+            .limit(1);
+
+        if (penjualanError) {
+            console.error('Error checking detail_penjualan:', penjualanError);
+            return NextResponse.json(
+                { error: 'Gagal memeriksa data penjualan' },
+                { status: 500 }
+            );
+        }
+
+        // 2. Check detail_barang_diterima
+        const { data: barangData, error: barangError } = await supabase
+            .from('detail_barang_diterima')
+            .select('id')
+            .eq('nomor_batch', noBatch)
+            .limit(1);
+
+        if (barangError) {
+            console.error('Error checking detail_barang_diterima:', barangError);
+            return NextResponse.json(
+                { error: 'Gagal memeriksa data barang diterima' },
+                { status: 500 }
+            );
+        }
+
+        // If has transaction history, use SOFT DELETE instead of hard delete
+        const hasTransactionHistory = (penjualanData && penjualanData.length > 0) || 
+                                      (barangData && barangData.length > 0);
+
+        if (hasTransactionHistory) {
+            // Soft delete: Set stok to 0 to mark as "removed" but keep for history
+            const { error: softDeleteError } = await supabase
+                .from('detail_obat')
+                .update({ 
+                    stok_sekarang: 0
+                })
+                .eq('nomor_batch', noBatch);
+
+            if (softDeleteError) {
+                console.error('Error soft deleting detail_obat:', softDeleteError);
+                return NextResponse.json(
+                    { error: 'Gagal menghapus obat', details: softDeleteError.message },
+                    { status: 500 }
+                );
+            }
+
+            return NextResponse.json({
+                success: true,
+                message: 'Obat berhasil dihapus dari inventory. History transaksi tetap tersimpan untuk keperluan laporan.',
+                softDelete: true
+            });
+        }
+
+        // If no transaction history, safe to HARD DELETE
         const { error: deleteDetailError } = await supabase
             .from('detail_obat')
             .delete()

@@ -46,17 +46,25 @@ export async function GET(request: NextRequest) {
                 .select(`
                     id_pp,
                     jumlah,
+                    harga,
                     penyedia_produk:id_pp (
                         id_obat,
                         obat:id_obat (
-                            nama_obat
+                            nama_obat,
+                            kategori,
+                            komposisi
                         )
                     )
                 `)
                 .eq('id_po', po.id);
 
-            if (detailError || !poDetails) continue;
-
+            if (detailError) {
+                continue;
+            }
+            if (!poDetails) {
+                continue;
+            }
+            
             // For each item in PO, check if it has detail_obat
             for (const detail of poDetails) {
                 const penyediaProduk = detail.penyedia_produk as any;
@@ -76,21 +84,27 @@ export async function GET(request: NextRequest) {
                         id_pp: detail.id_pp,
                         id_obat: id_obat,
                         nama_obat: penyediaProduk?.obat?.nama_obat || 'N/A',
+                        kategori: penyediaProduk?.obat?.kategori || '',
+                        komposisi: penyediaProduk?.obat?.komposisi || '',
+                        harga_satuan: detail.harga || 0,
                         jumlah_diterima: detail.jumlah,
                         nomor_batch: null,
                         tiba_pada: new Date().toISOString().split('T')[0],
+                        id_supplier: po.id_supplier,
                         nama_supplier: supplier?.nama_supplier || 'N/A'
                     });
                     continue;
                 }
 
-                // Check detail_barang_diterima
-                const { data: detailBarang } = await supabase
+                // Check detail_barang_diterima - if ANY exists, this item is complete
+                const { data: detailBarangList, error: detailBarangError } = await supabase
                     .from('detail_barang_diterima')
                     .select('id, nomor_batch, jumlah_diterima')
                     .eq('id_diterima', barangDiterimaId)
-                    .eq('id_pp', detail.id_pp)
-                    .maybeSingle();
+                    .eq('id_obat', id_obat)
+                    .limit(1);
+
+                const detailBarang = detailBarangList && detailBarangList.length > 0 ? detailBarangList[0] : null;
 
                 if (!detailBarang) {
                     // No detail_barang_diterima yet
@@ -100,9 +114,13 @@ export async function GET(request: NextRequest) {
                         id_pp: detail.id_pp,
                         id_obat: id_obat,
                         nama_obat: penyediaProduk?.obat?.nama_obat || 'N/A',
+                        kategori: penyediaProduk?.obat?.kategori || '',
+                        komposisi: penyediaProduk?.obat?.komposisi || '',
+                        harga_satuan: detail.harga || 0,
                         jumlah_diterima: detail.jumlah,
                         nomor_batch: null,
                         tiba_pada: po.barang_diterima[0].tiba_pada,
+                        id_supplier: po.id_supplier,
                         nama_supplier: supplier?.nama_supplier || 'N/A'
                     });
                 } else if (!detailBarang.nomor_batch) {
@@ -113,9 +131,13 @@ export async function GET(request: NextRequest) {
                         id_pp: detail.id_pp,
                         id_obat: id_obat,
                         nama_obat: penyediaProduk?.obat?.nama_obat || 'N/A',
+                        kategori: penyediaProduk?.obat?.kategori || '',
+                        komposisi: penyediaProduk?.obat?.komposisi || '',
+                        harga_satuan: detail.harga || 0,
                         jumlah_diterima: detailBarang.jumlah_diterima,
                         nomor_batch: null,
                         tiba_pada: po.barang_diterima[0].tiba_pada,
+                        id_supplier: po.id_supplier,
                         nama_supplier: supplier?.nama_supplier || 'N/A'
                     });
                 } else {

@@ -70,7 +70,7 @@ export default function PurchaseOrderClient({ orders, totalPages, currentPage }:
     };
 
     const createPageURL = (pageNumber: number) => {
-        return `/pengadaan/informasi-po?page=${pageNumber}`;
+        return `/pegawai/pengadaan/informasi-po?page=${pageNumber}`;
     };
 
     return (

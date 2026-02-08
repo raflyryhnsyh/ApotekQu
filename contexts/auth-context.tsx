@@ -41,12 +41,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             // Skip auth for test routes or if test mode is enabled
             if (typeof window !== 'undefined' &&
                 (window.location.pathname.includes('/test') || (window as any).__TEST_MODE__)) {
-                console.log('🧪 Skipping auth fetch for test mode');
                 return false;
             }
-
-            console.log('Fetching user profile...');
-            console.log('Current URL:', window.location.href);
 
             const response = await fetch('/api/auth/profile', {
                 credentials: 'include',
@@ -57,22 +53,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
                 }
             });
 
-            console.log('Response status:', response.status);
-            console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
             // Check if response is HTML (error page)
             const contentType = response.headers.get('content-type') || '';
-            console.log('Content-Type:', contentType);
 
             if (contentType.includes('text/html')) {
-                console.warn('Got HTML instead of JSON - API endpoint might not exist or server not running');
-
                 // Fallback: check localStorage for existing session
                 const storedRole = localStorage.getItem('userRole');
                 const storedProfile = localStorage.getItem('userProfile');
 
                 if (storedRole && storedProfile) {
-                    console.log('Using stored profile data as fallback');
                     const profile = JSON.parse(storedProfile);
 
                     setAuthState({
@@ -99,8 +88,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
             if (!response.ok) {
                 if (response.status === 401) {
-                    console.log('User not authenticated (401)');
-
                     // Clear any stale localStorage data
                     localStorage.removeItem('userRole');
                     localStorage.removeItem('userProfile');
@@ -120,7 +107,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             }
 
             const result = await response.json();
-            console.log('Profile API result:', result);
 
             if (result.success && result.data) {
                 const { user, profile } = result.data;
@@ -152,7 +138,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             const storedProfile = localStorage.getItem('userProfile');
 
             if (storedRole && storedProfile) {
-                console.log('Using stored profile data due to fetch error');
                 const profile = JSON.parse(storedProfile);
 
                 setAuthState({
@@ -265,7 +250,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             if (storedRole && storedProfile) {
                 try {
                     const profile = JSON.parse(storedProfile);
-                    console.log('Loading from localStorage:', profile);
 
                     setAuthState({
                         user: { id: profile.id, email: profile.email } as any,

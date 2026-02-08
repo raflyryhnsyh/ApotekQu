@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ConfirmationDialog } from '@/components/ui/confirmationdialog';
-import { SuccessToast } from '@/components/ui/successalert';
+import { Toast, ToastType } from '@/components/ui/toast';
 
 interface TerimaBarangButtonProps {
     status: string;
@@ -14,7 +14,9 @@ export function TerimaBarangButton({ status, orderId }: TerimaBarangButtonProps)
     const router = useRouter();
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [showSuccessToast, setShowSuccessToast] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const [toastType, setToastType] = useState<ToastType>("success");
+    const [toastMessage, setToastMessage] = useState("");
     const isDisabled = status !== 'dikirim' || isLoading;
 
     const handleConfirmReceive = async () => {
@@ -37,11 +39,15 @@ export function TerimaBarangButton({ status, orderId }: TerimaBarangButtonProps)
                 throw new Error(error.error || 'Gagal menerima barang');
             }
 
-            setShowSuccessToast(true);
+            setToastType("success");
+            setToastMessage("Barang berhasil diterima!");
+            setShowToast(true);
             router.refresh();
         } catch (error) {
             console.error('Error receiving goods:', error);
-            alert(error instanceof Error ? error.message : 'Gagal menerima barang');
+            setToastType("error");
+            setToastMessage(error instanceof Error ? error.message : "Gagal menerima barang");
+            setShowToast(true);
         } finally {
             setIsLoading(false);
         }
@@ -54,7 +60,7 @@ export function TerimaBarangButton({ status, orderId }: TerimaBarangButtonProps)
                 disabled={isDisabled}
                 className="rounded-lg bg-green-100 px-3 py-2 text-xs font-semibold text-green-800 transition hover:bg-green-200 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
             >
-                {isLoading ? 'Memproses...' : 'Terima Barang'}
+                {isLoading ? 'Memproses...' : 'Terima'}
             </button>
         
             <ConfirmationDialog
@@ -67,12 +73,14 @@ export function TerimaBarangButton({ status, orderId }: TerimaBarangButtonProps)
                 <p className="text-sm text-gray-600 mt-2">Anda dapat melengkapi detail obat nanti di halaman Pengelolaan Obat.</p>
             </ConfirmationDialog>
 
-            <SuccessToast
-                isOpen={showSuccessToast}
-                onClose={() => setShowSuccessToast(false)}
+            <Toast
+                isOpen={showToast}
+                onClose={() => setShowToast(false)}
+                type={toastType}
+                title={toastType === "success" ? "Berhasil!" : "Gagal!"}
             >
-                <p>Barang berhasil diterima! Silakan cek Pengelolaan Obat untuk melengkapi detail.</p>
-            </SuccessToast>
+                <p>{toastMessage}</p>
+            </Toast>
         </>
     );
 }

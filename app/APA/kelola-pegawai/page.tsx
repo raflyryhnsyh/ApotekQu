@@ -289,7 +289,16 @@ export default function KelolaPegawaiPage() {
                         </tr>
                     </thead>
                     <tbody className="bg-white">
-                        {pegawaiData.length === 0 ? (
+                        {loading ? (
+                            <tr>
+                                <td colSpan={6} className="px-6 py-12">
+                                    <div className="flex flex-col items-center justify-center">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                        <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : pegawaiData.length === 0 ? (
                             <tr>
                                 <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                                     Tidak ada data pegawai

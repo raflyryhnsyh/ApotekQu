@@ -28,7 +28,10 @@ export function RincianPOModal({ isOpen, onClose, order, details, isLoading }: R
                 <h2 className="text-xl font-bold text-gray-900">Rincian PO</h2>
 
                 {isLoading ? (
-                    <div className="py-12 text-center">Memuat rincian...</div>
+                    <div className="flex flex-col items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
+                    </div>
                 ) : (
                     <>
                         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">

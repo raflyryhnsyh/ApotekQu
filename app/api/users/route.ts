@@ -97,8 +97,6 @@ export async function POST(request: NextRequest) {
             }
         });
 
-        console.log('Sign up data:', signUpData);
-
         if (authError) {
             console.error('Auth error:', authError);
             if (authError.message.includes('duplicate') || authError.message.includes('already')) {

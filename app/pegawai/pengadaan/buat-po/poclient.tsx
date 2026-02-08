@@ -5,7 +5,7 @@ import { useCartStore } from "./usecartstore";
 import ObatCard from "@/components/pengadaan-katalog/obatcard";
 import { CartItemCard } from "@/components/pengadaan-cart/cartitem";
 import { ConfirmationDialog } from "@/components/ui/confirmationdialog";
-import { SuccessToast } from "@/components/ui/successalert";
+import { Toast, ToastType } from "@/components/ui/toast";
 import { createClient } from "@/utils/supabase/client";
 
 
@@ -28,7 +28,9 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
     const { cart, addToCart, increment, decrement, clearCart } = useCartStore();
     const [errors, setErrors] = useState<{ cart?: boolean }>({});
     const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [showSuccessToast, setShowSuccessToast] = useState(false);
+    const [showToast, setShowToast] = useState(false);
+    const [toastType, setToastType] = useState<ToastType>("success");
+    const [toastMessage, setToastMessage] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // EFEK
@@ -59,7 +61,9 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 // Jika tidak ada user yang login, hentikan proses
-                alert("Sesi tidak ditemukan. Harap login kembali.");
+                setToastType("error");
+                setToastMessage("Sesi tidak ditemukan. Harap login kembali.");
+                setShowToast(true);
                 setIsSubmitting(false);
                 return;
             }
@@ -96,11 +100,15 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
             );
 
             clearCart();
-            setShowSuccessToast(true);
+            setToastType("success");
+            setToastMessage("Purchase Order berhasil dibuat!");
+            setShowToast(true);
 
         } catch (error) {
             console.error("Gagal menyimpan Purchase Order:", error);
-            alert("Terjadi kesalahan saat menyimpan pesanan.");
+            setToastType("error");
+            setToastMessage("Terjadi kesalahan saat menyimpan pesanan. Silakan coba lagi.");
+            setShowToast(true);
         } finally {
             setIsSubmitting(false);
         }
@@ -196,12 +204,14 @@ export default function PengadaanClient({ initialKatalog }: PengadaanClientProps
                 <p>Apakah Anda yakin ingin mengajukan semua item di keranjang?</p>
             </ConfirmationDialog>
 
-            <SuccessToast
-                isOpen={showSuccessToast}
-                onClose={() => setShowSuccessToast(false)}
+            <Toast
+                isOpen={showToast}
+                onClose={() => setShowToast(false)}
+                type={toastType}
+                title={toastType === "success" ? "Berhasil!" : "Gagal!"}
             >
-                <p>Purchase Order berhasil dibuat!</p>
-            </SuccessToast>
+                <p>{toastMessage}</p>
+            </Toast>
         </>
     );
 }

@@ -67,7 +67,6 @@ export default function LoginPage() {
             try {
                 result = await response.json();
             } catch (parseError) {
-                console.log('JSON parse error:', parseError);
                 setError('Server mengembalikan respons yang tidak valid');
                 return;
             }
@@ -85,8 +84,6 @@ export default function LoginPage() {
                     setError('Akun Anda tidak memiliki akses ke sistem ini');
                     return;
                 }
-
-                console.log('Login berhasil! Role:', profile.role);
 
                 // Set the session in Supabase client
                 if (session) {
@@ -114,7 +111,6 @@ export default function LoginPage() {
             }
 
         } catch (error) {
-            console.log('Unexpected error:', error);
             setError('Terjadi kesalahan yang tidak terduga');
         } finally {
             setIsLoading(false);

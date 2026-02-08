@@ -18,10 +18,6 @@ interface TransactionDetailProps {
 export default function TransactionDetailModal({ isOpen, onClose, transaction }: TransactionDetailProps) {
     if (!isOpen || !transaction) return null;
 
-    // Debug logging
-    console.log('Transaction Detail Modal - Transaction data:', transaction);
-    console.log('Transaction items:', transaction.items);
-
     return (
         <div className="fixed inset-0 bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white rounded-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">

@@ -402,21 +402,12 @@ export default function LaporanPage() {
         limit: 1000
       });
 
-      console.log('Purchase API Response:', response);
-
       if (response.success && response.data?.data) {
-        console.log('Purchase data found:', response.data.data.length, 'items');
-        
         // Parse filter dates for comparison
         const filterStartDate = new Date(dateFilter.startDate);
         const filterEndDate = new Date(dateFilter.endDate);
         filterEndDate.setHours(23, 59, 59, 999); // Include end of day
         
-        console.log('Date filter:', {
-          start: filterStartDate.toISOString(),
-          end: filterEndDate.toISOString()
-        });
-
         // First, collect all unique product IDs
         const productIds = new Set<string>();
         (response.data.data as PurchaseOrderResponse[]).forEach((purchase) => {
@@ -449,15 +440,10 @@ export default function LaporanPage() {
           // Filter by date range
           const purchaseDate = new Date(purchase.dibuat_pada);
           if (purchaseDate < filterStartDate || purchaseDate > filterEndDate) {
-            console.log('Skipping purchase outside date range:', purchase.id, purchaseDate.toISOString());
             return; // Skip purchases outside date range
           }
 
-          console.log('Processing purchase:', purchase.id, 'date:', purchaseDate.toISOString(), 'with details:', purchase.detail_purchase_order?.length || 0);
-
           purchase.detail_purchase_order?.forEach((detail) => {
-            console.log('Detail structure:', detail);
-
             // Check multiple possible data structures
             let productId: string | null = null;
             let productName: string = 'Unknown';
@@ -484,14 +470,11 @@ export default function LaporanPage() {
               existing.totalPembelian += detail.jumlah * detail.harga;
 
               purchasesByProduct.set(productId, existing);
-              console.log('Added purchase for product:', productId, existing);
             } else {
-              console.log('Missing product info in detail:', detail);
+              // Missing product info
             }
           });
         });
-
-        console.log('Aggregated purchases:', purchasesByProduct.size, 'products');
 
         // Convert to array format
         const purchaseArray: PembelianItem[] = Array.from(purchasesByProduct.entries()).map(([id, data], index) => ({
@@ -503,10 +486,8 @@ export default function LaporanPage() {
           id_obat: id
         }));
 
-        console.log('Final purchase array:', purchaseArray);
         setPembelianData(purchaseArray);
       } else {
-        console.log('No purchase data or API failed:', response);
         // Set empty array instead of keeping old data
         setPembelianData([]);
       }
@@ -583,8 +564,8 @@ export default function LaporanPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-600"></div>
-        <p className="mt-4 text-lg text-gray-600">Loading...</p>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
       </div>
     );
   }

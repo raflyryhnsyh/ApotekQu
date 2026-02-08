@@ -30,6 +30,7 @@ import { DataEdit } from "./data-edit"
 import { DataDelete } from "./data-delete"
 import { ExpiredMedicine, ExpiredNotification } from "./pengingat-expired"
 import { getKelolaObatData, deleteKelolaObat } from "@/lib/api/kelola-obat"
+import { Toast, ToastType } from "@/components/ui/toast"
 
 export type PengelolaanObat = {
     noBatch: string
@@ -48,6 +49,9 @@ export function DataTableDemo() {
     const [data, setData] = React.useState<PengelolaanObat[]>([])
     const [loading, setLoading] = React.useState(true)
     const [error, setError] = React.useState<string | null>(null)
+    const [showToast, setShowToast] = React.useState(false)
+    const [toastType, setToastType] = React.useState<ToastType>("success")
+    const [toastMessage, setToastMessage] = React.useState("")
     const [sorting, setSorting] = React.useState<SortingState>([])
     const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
     const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -141,12 +145,18 @@ export function DataTableDemo() {
     const handleAdd = async () => {
         // Refresh data after add
         await fetchData()
+        setToastType("success")
+        setToastMessage("Obat berhasil ditambahkan!")
+        setShowToast(true)
     }
 
     // Handle edit obat
     const handleEdit = async () => {
         // Refresh data after edit
         await fetchData()
+        setToastType("success")
+        setToastMessage("Obat berhasil diupdate!")
+        setShowToast(true)
     }
 
     // Handle delete obat
@@ -155,9 +165,14 @@ export function DataTableDemo() {
             await deleteKelolaObat(noBatch)
             // Refresh data after delete
             await fetchData()
+            setToastType("success")
+            setToastMessage("Obat berhasil dihapus!")
+            setShowToast(true)
         } catch (error) {
             console.error('Error deleting obat:', error)
-            alert('Gagal menghapus obat')
+            setToastType("error")
+            setToastMessage("Gagal menghapus obat")
+            setShowToast(true)
         }
     }
 
@@ -287,11 +302,9 @@ export function DataTableDemo() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="flex items-center gap-2">
-                    <Loader2 className="h-6 w-6 animate-spin" />
-                    <span>Memuat data obat...</span>
-                </div>
+            <div className="flex flex-col items-center justify-center min-h-[400px]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
             </div>
         )
     }
@@ -460,6 +473,15 @@ export function DataTableDemo() {
                     onOpenChange={(open: boolean) => !open && setDeletingObat(null)}
                 />
             )}
+
+            <Toast
+                isOpen={showToast}
+                onClose={() => setShowToast(false)}
+                type={toastType}
+                title={toastType === "success" ? "Berhasil!" : "Gagal!"}
+            >
+                <p>{toastMessage}</p>
+            </Toast>
         </div>
     )
 }

@@ -25,8 +25,6 @@ export async function GET() {
         let finalProfile = profile;
 
         if (profileError) {
-            console.log('Profile not found for user:', user.id, 'Error:', profileError);
-
             // Try to create profile automatically
             const { data: newProfile, error: createError } = await supabase
                 .from('pengguna')
@@ -52,7 +50,6 @@ export async function GET() {
             }
 
             finalProfile = newProfile;
-            console.log('Profile created successfully for user:', user.id);
         }
 
         return NextResponse.json({

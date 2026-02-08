@@ -28,12 +28,8 @@ export default async function InformasiPOPage({ searchParams }: { searchParams?:
         return <p className="p-8">Terjadi kesalahan saat memuat data.</p>;
     }
 
+    // Urutkan berdasarkan tanggal terbaru (descending)
     allOrders.sort((a: RpcResult, b: RpcResult) => {
-        // Aturan 1: Status 'diterima' selalu di bawah
-        if (a.status === 'diterima' && b.status !== 'diterima') return 1;
-        if (a.status !== 'diterima' && b.status === 'diterima') return -1;
-
-        // Aturan 2: Urutkan berdasarkan tanggal terbaru
         return new Date(b.dibuat_pada).getTime() - new Date(a.dibuat_pada).getTime();
     });
 

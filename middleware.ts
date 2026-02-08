@@ -79,7 +79,6 @@ export async function middleware(req: NextRequest) {
                 return NextResponse.redirect(new URL('/pegawai', req.url))
             }
         } catch (error) {
-            console.log('Middleware database error:', error)
             // Continue without role check if database fails
         }
     }

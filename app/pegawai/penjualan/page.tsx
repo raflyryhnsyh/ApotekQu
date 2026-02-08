@@ -177,10 +177,8 @@ export default function PenjualanPage() {
 
                 const transformedProducts: Product[] = Array.from(productMap.values());
                 setProducts(transformedProducts);
-                console.log("Products loaded successfully:", transformedProducts.length);
             } else {
                 // Fallback to basic products endpoint
-                console.log("Trying fallback endpoint /obat");
                 const basicResponse = await penjualanAPI.getProducts();
 
                 if (basicResponse.success && basicResponse.data) {
@@ -196,12 +194,10 @@ export default function PenjualanPage() {
 
                     setProducts(basicProducts);
                     setProductsWithStock([]); // No detailed stock info
-                    console.log("Basic products loaded:", basicProducts.length);
                 } else {
                     console.error("Failed to load products:", basicResponse.error);
 
                     // Ultimate fallback: use dummy data
-                    console.log("Using dummy data as fallback");
                     const dummyProducts: Product[] = [
                         { id: "MED-001", name: "Paracetamol 500mg", price: 5000, stock: 100 },
                         { id: "MED-002", name: "Ibuprofen 200mg", price: 4000, stock: 50 },
@@ -244,7 +240,6 @@ export default function PenjualanPage() {
                     })) || []
                 }));
 
-                console.log('Loaded transactions:', transformedTransactions);
                 setTransactions(transformedTransactions);
             } else {
                 console.error('Failed to load transactions:', response.error);
@@ -300,8 +295,6 @@ export default function PenjualanPage() {
         setSelectedProductId("");
         setQuantity(1);
         setError(""); // Clear any previous errors
-
-        console.log(`Added to cart: ${selectedProduct.name}, Quantity: ${quantity}, Available stock: ${selectedProduct.stock}`);
     };
 
     const removeFromCart = (id: string) => {
@@ -321,7 +314,6 @@ export default function PenjualanPage() {
     const handlePayment = async () => {
         // Prevent double submission
         if (loading) {
-            console.log('Payment already in progress, ignoring duplicate request');
             return;
         }
 
@@ -388,8 +380,6 @@ export default function PenjualanPage() {
                         return null;
                     }
 
-                    console.log(`Item: ${item.name}, Product ID: ${item.id}, Selected Batch: ${(selectedBatch.noBatch as string)}, Available Stock: ${(selectedBatch.totalStok as number)}, Quantity: ${item.quantity}`);
-
                     return {
                         id_obat: item.id,
                         jumlah_terjual: item.quantity,
@@ -409,8 +399,6 @@ export default function PenjualanPage() {
                     diproses_oleh: user.id,
                     items: saleItems
                 };
-
-                console.log('Sending sale data:', saleData);
 
                 const response = await penjualanAPI.createSale(saleData);
 
@@ -433,8 +421,6 @@ export default function PenjualanPage() {
                     setShowPaymentSuccess(true);
                     setCart([]);
                     setCashAmount("");
-
-                    console.log('Transaction created successfully:', newTransaction);
 
                     // Reload products to update stock and transactions
                     await Promise.all([
@@ -459,8 +445,8 @@ export default function PenjualanPage() {
     if (authLoading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-lg">Memverifikasi autentikasi...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
             </div>
         );
     }
@@ -489,8 +475,8 @@ export default function PenjualanPage() {
     if (loading) {
         return (
             <div className="min-h-screen flex flex-col items-center justify-center">
-                <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-                <p className="mt-4 text-lg">Memuat data...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
             </div>
         );
     }
@@ -547,7 +533,7 @@ export default function PenjualanPage() {
                             </div>
                             <div>
                                 <span className="text-gray-600 text-sm">Petugas Apotik</span>
-                                <p className="font-medium">{profile?.full_name || 'Loading...'}</p>
+                                <p className="font-medium">{profile?.full_name || 'Memuat...'}</p>
                             </div>
                         </div>
                     </div>
@@ -566,7 +552,7 @@ export default function PenjualanPage() {
                                 disabled={productsLoading}
                             >
                                 <option value="">
-                                    {productsLoading ? 'Loading...' : 'Pilih obat'}
+                                    {productsLoading ? 'Memuat...' : 'Pilih obat'}
                                 </option>
                                 {products.map((product) => (
                                     <option key={product.id} value={product.id}>
@@ -592,7 +578,7 @@ export default function PenjualanPage() {
                         disabled={!selectedProductId || quantity <= 0 || productsLoading}
                         className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                     >
-                        {productsLoading ? 'Loading...' : 'Tambah'}
+                        {productsLoading ? 'Memuat...' : 'Tambah'}
                     </button>
 
                     {/* Cart Table */}
@@ -641,8 +627,9 @@ export default function PenjualanPage() {
                 <div className="bg-white rounded-lg shadow-sm border p-6">
                     <h3 className="text-lg font-semibold mb-4 text-gray-900">Riwayat Transaksi</h3>
                     {transactionsLoading ? (
-                        <div className="flex justify-center py-8">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                        <div className="flex flex-col items-center justify-center py-8">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
                         </div>
                     ) : (
                         <DataTable

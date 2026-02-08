@@ -24,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Edit, Loader2 } from "lucide-react"
 import { updateKelolaObat, getKelolaObatByBatch } from "@/lib/api/kelola-obat"
 import { PengelolaanObat } from "./data-table"
+import { Toast, ToastType } from "@/components/ui/toast"
 
 interface DataEditProps {
     data?: {
@@ -34,6 +35,12 @@ interface DataEditProps {
         harga_jual: number
         kadaluarsa: string
         nama_supplier: string
+        supplier_id?: string
+        kategori?: string
+        komposisi?: string
+        id_barang_diterima?: string
+        id_pp?: string
+        id_obat?: string  // Added for batch generation
     }
     obat?: PengelolaanObat
     onEdit?: () => void
@@ -50,6 +57,9 @@ interface Supplier {
 
 export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, onOpenChange: externalOnOpenChange }: DataEditProps) {
     const [open, setOpen] = useState(false)
+    const [showToast, setShowToast] = useState(false)
+    const [toastType, setToastType] = useState<ToastType>("success")
+    const [toastMessage, setToastMessage] = useState("")
 
     // Use external open state if provided, otherwise use internal
     const isOpen = externalOpen !== undefined ? externalOpen : open
@@ -58,6 +68,7 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
     // Support both data formats
     const noBatch = data?.nomor_batch || obat?.noBatch || ""
     const namaObat = data?.nama_obat || obat?.nama || ""
+    const idObat = data?.id_obat || ""
     const [formData, setFormData] = useState({
         nama_obat: "",
         komposisi: "",
@@ -73,20 +84,17 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
     const [suppliers, setSuppliers] = useState<Supplier[]>([])
     const [loadingSuppliers, setLoadingSuppliers] = useState(false)
     const [loadingData, setLoadingData] = useState(false)
+    const [generatingBatch, setGeneratingBatch] = useState(false)
 
     // Fetch actual obat data from API
     const fetchObatData = useCallback(async () => {
         if (!noBatch) {
-            console.log('❌ No batch number provided')
             return
         }
         
         try {
             setLoadingData(true)
-            console.log('🔍 Fetching data for batch:', noBatch)
             const response = await getKelolaObatByBatch(noBatch)
-
-            console.log('📦 API Response:', response)
 
             if (response.success && response.data) {
                 // Add a type for the data object
@@ -101,15 +109,6 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
                     supplier_id?: string
                 }
                 const data = response.data as ObatApiResponse
-                console.log('✅ Data received:', {
-                    nama_obat: data.nama_obat,
-                    komposisi: data.komposisi,
-                    kategori: data.kategori,
-                    stok_sekarang: data.stok_sekarang,
-                    satuan: data.satuan,
-                    harga_jual: data.harga_jual,
-                    supplier_id: data.supplier_id
-                })
 
                 // Format date for input[type="date"] (YYYY-MM-DD)
                 const formattedDate = data.kadaluarsa ? new Date(data.kadaluarsa).toISOString().split('T')[0] : ""
@@ -126,10 +125,7 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
                     supplier_id: data.supplier_id || ""
                 }
                 
-                console.log('Setting form data:', newFormData)
                 setFormData(newFormData)
-            } else {
-                console.log('No data in response or success=false')
             }
         } catch (error) {
             console.error('Error fetching obat data:', error)
@@ -155,6 +151,31 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
         }
     }, [])
 
+    const generateBatchNumber = useCallback(async () => {
+        if (!idObat) return
+        
+        try {
+            setGeneratingBatch(true)
+            const response = await fetch('/api/generate-batch-number', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id_obat: idObat })
+            })
+            
+            if (response.ok) {
+                const result = await response.json()
+                setFormData(prev => ({
+                    ...prev,
+                    nomor_batch: result.batch_number
+                }))
+            }
+        } catch (error) {
+            console.error('Error generating batch number:', error)
+        } finally {
+            setGeneratingBatch(false)
+        }
+    }, [idObat])
+
     // Fetch data when dialog opens
     useEffect(() => {
         if (isOpen) {
@@ -162,11 +183,11 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
             if (noBatch) {
                 fetchObatData()
             } else if (data) {
-                // If no batch but has data prop, pre-populate form from prop
+                // If no batch but has data prop, pre-populate form from prop (incomplete medicine)
                 setFormData({
                     nama_obat: data.nama_obat || "",
-                    komposisi: "",
-                    kategori: "",
+                    komposisi: data.komposisi || "",
+                    kategori: data.kategori || "",
                     nomor_batch: data.nomor_batch || "",
                     kadaluarsa: data.kadaluarsa || "",
                     stok_sekarang: data.stok_sekarang?.toString() || "",
@@ -174,22 +195,30 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
                     harga_jual: data.harga_jual?.toString() || "",
                     supplier_id: ""
                 })
+                
+                // Auto-generate batch number if empty and id_obat exists
+                if (!data.nomor_batch && idObat) {
+                    generateBatchNumber()
+                }
             }
             
             if (suppliers.length === 0) {
                 fetchSuppliers()
             }
         }
-    }, [isOpen, noBatch, data, fetchObatData, suppliers.length, fetchSuppliers])
+    }, [isOpen, noBatch, data, fetchObatData, suppliers.length, fetchSuppliers, idObat, generateBatchNumber])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
-
+        
         try {
             // Validasi form
-            if (!formData.nama_obat || !formData.kadaluarsa || !formData.stok_sekarang || !formData.satuan) {
-                alert("Field yang wajib harus diisi!")
+            if (!formData.nama_obat || !formData.nomor_batch || !formData.kadaluarsa || !formData.stok_sekarang || !formData.satuan) {
+                setToastType("warning")
+                setToastMessage("Field yang wajib harus diisi!")
+                setShowToast(true)
+                setIsLoading(false)
                 return
             }
 
@@ -198,7 +227,10 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
             const harga = parseFloat(formData.harga_jual) || 0
 
             if (isNaN(stok) || stok < 0) {
-                alert("Stok harus berupa angka yang valid!")
+                setToastType("warning")
+                setToastMessage("Stok harus berupa angka yang valid!")
+                setShowToast(true)
+                setIsLoading(false)
                 return
             }
 
@@ -206,27 +238,56 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
                 nama_obat: formData.nama_obat.trim(),
                 komposisi: formData.komposisi.trim() || undefined,
                 kategori: formData.kategori || undefined,
+                nomor_batch: formData.nomor_batch.trim(),
                 kadaluarsa: formData.kadaluarsa,
                 stok_sekarang: stok,
                 satuan: formData.satuan,
                 harga_jual: harga,
-                supplier_id: formData.supplier_id || undefined
+                supplier_id: data?.supplier_id,
+                id_barang_diterima: data?.id_barang_diterima,
+                id_pp: data?.id_pp
             }
 
-            await updateKelolaObat(noBatch, dataToSubmit)
-
-            handleOpenChange(false)
-            if (onEdit) {
-                onEdit() // Refresh parent data
-            } else if (onSuccess) {
-                await onSuccess()
+            // If noBatch is empty (incomplete medicine), use POST to create new
+            // Otherwise use PUT to update existing
+            if (!noBatch || noBatch.trim() === '') {
+                // Create new detail_obat (incomplete medicine completion)
+                const response = await fetch('/api/kelola-obat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dataToSubmit)
+                })
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ error: 'Gagal menyimpan data obat' }))
+                    throw new Error(errorData.error || 'Gagal menyimpan data obat')
+                }
+            } else {
+                // Update existing detail_obat
+                await updateKelolaObat(noBatch, dataToSubmit)
             }
-            alert("Obat berhasil diupdate!")
+
+            // Show success toast first
+            setToastType("success")
+            setToastMessage(noBatch ? "Obat berhasil diupdate!" : "Obat berhasil dilengkapi!")
+            setShowToast(true)
+
+            // Delay close dialog so toast can be seen
+            setTimeout(() => {
+                handleOpenChange(false)
+                if (onEdit) {
+                    onEdit() // Refresh parent data
+                } else if (onSuccess) {
+                    onSuccess()
+                }
+            }, 500) // 500ms delay so user sees the toast
 
         } catch (error: unknown) {
             console.error("Error updating obat:", error)
             const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat mengupdate obat!"
-            alert(errorMessage)
+            setToastType("error")
+            setToastMessage(errorMessage)
+            setShowToast(true)
         } finally {
             setIsLoading(false)
         }
@@ -260,11 +321,9 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
                 </DialogHeader>
 
                 {loadingData ? (
-                    <div className="flex items-center justify-center py-12">
-                        <div className="flex items-center gap-3">
-                            <Loader2 className="h-6 w-6 animate-spin" />
-                            <span className="text-lg">Memuat data obat...</span>
-                        </div>
+                    <div className="flex flex-col items-center justify-center py-8">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
                     </div>
                 ) : (
                     <form onSubmit={handleSubmit}>
@@ -322,16 +381,35 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
                                 {/* Nomor Batch */}
                                 <div className="grid gap-3">
                                     <Label htmlFor="edit-nomor-batch" className="text-base font-medium">
-                                        Nomor Batch <span className="text-red-500">*</span>
+                                        Nomor Batch {!noBatch && "(Auto-Generated)"} <span className="text-red-500">*</span>
                                     </Label>
-                                    <Input
-                                        id="edit-nomor-batch"
-                                        value={formData.nomor_batch || noBatch}
-                                        onChange={(e) => handleInputChange("nomor_batch", e.target.value)}
-                                        placeholder="Nomor batch"
-                                        className="h-12 text-base border-gray-300 rounded-lg"
-                                        required
-                                    />
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="edit-nomor-batch"
+                                            value={formData.nomor_batch || noBatch}
+                                            onChange={(e) => handleInputChange("nomor_batch", e.target.value)}
+                                            placeholder="Nomor batch"
+                                            className="h-12 text-base border-gray-300 rounded-lg"
+                                            readOnly={!noBatch && !!idObat}
+                                            style={!noBatch && idObat ? { backgroundColor: '#f9fafb' } : {}}
+                                            required
+                                        />
+                                        {!noBatch && idObat && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={generateBatchNumber}
+                                                disabled={generatingBatch}
+                                                className="flex-shrink-0 h-12"
+                                            >
+                                                {generatingBatch ? <Loader2 className="h-4 w-4 animate-spin" /> : "🔄"}
+                                            </Button>
+                                        )}
+                                    </div>
+                                    {!noBatch && idObat && (
+                                        <p className="text-xs text-gray-500">Format: KODE-YYYY-XXX (contoh: AMOX-2026-001)</p>
+                                    )}
                                 </div>
 
                                 {/* Tanggal Expired */}
@@ -407,29 +485,21 @@ export function DataEdit({ data, obat, onEdit, onSuccess, open: externalOpen, on
                                     />
                                 </div>
 
-                                {/* Supplier */}
+                                {/* Supplier - Read Only */}
                                 <div className="grid gap-3">
-                                    <Label htmlFor="edit-supplier" className="text-base font-medium">
-                                        Supplier
+                                    <Label htmlFor="edit-supplier" className="text-base font-medium text-gray-500">
+                                        Supplier (Tidak dapat diubah)
                                     </Label>
-                                    <Select
-                                        value={formData.supplier_id}
-                                        onValueChange={(value) => handleInputChange("supplier_id", value)}
-                                        disabled={loadingSuppliers}
-                                    >
-                                        <SelectTrigger className="h-12 text-base border-gray-300 rounded-lg">
-                                            <SelectValue placeholder={
-                                                loadingSuppliers ? "Memuat supplier..." : "Pilih supplier"
-                                            } />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {suppliers.map((supplier) => (
-                                                <SelectItem key={supplier.id} value={supplier.id}>
-                                                    {supplier.nama_supplier}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Input
+                                        id="edit-supplier"
+                                        type="text"
+                                        value={data?.nama_supplier || 'N/A'}
+                                        disabled
+                                        className="h-12 text-base border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
+                                    />
+                                    <p className="text-xs text-gray-500 -mt-1">
+                                        Supplier terikat dengan Purchase Order dan tidak dapat diubah
+                                    </p>
                                 </div>
                             </div>
                         </div>

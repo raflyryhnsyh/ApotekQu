@@ -23,6 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Loader2 } from "lucide-react"
 import { createKelolaObat } from "@/lib/api/kelola-obat"
+import { Toast, ToastType } from "@/components/ui/toast"
 
 interface DataAddProps {
     onAdd?: () => void
@@ -44,6 +45,9 @@ interface Obat {
 
 export function DataAdd({ onAdd, onSuccess }: DataAddProps) {
     const [open, setOpen] = useState(false)
+    const [showToast, setShowToast] = useState(false)
+    const [toastType, setToastType] = useState<ToastType>("success")
+    const [toastMessage, setToastMessage] = useState("")
     const [formData, setFormData] = useState({
         nama_obat: "",
         komposisi: "",
@@ -86,12 +90,15 @@ export function DataAdd({ onAdd, onSuccess }: DataAddProps) {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
-
+        
         try {
             // Validasi form
             if (!formData.nama_obat || !formData.nomor_batch || !formData.kadaluarsa ||
                 !formData.stok_sekarang || !formData.satuan || !formData.supplier_id) {
-                alert("Semua field wajib harus diisi!")
+                setToastType("warning")
+                setToastMessage("Semua field wajib harus diisi!")
+                setShowToast(true)
+                setIsLoading(false)
                 return
             }
 
@@ -100,7 +107,10 @@ export function DataAdd({ onAdd, onSuccess }: DataAddProps) {
             const harga = parseFloat(formData.harga_jual) || 0
 
             if (isNaN(stok) || stok < 0) {
-                alert("Stok harus berupa angka yang valid!")
+                setToastType("warning")
+                setToastMessage("Stok harus berupa angka yang valid!")
+                setShowToast(true)
+                setIsLoading(false)
                 return
             }
 
@@ -131,18 +141,27 @@ export function DataAdd({ onAdd, onSuccess }: DataAddProps) {
                 supplier_id: ""
             })
 
-            setOpen(false)
-            if (onAdd) {
-                onAdd() // Refresh parent data
-            } else if (onSuccess) {
-                await onSuccess()
-            }
-            alert("Obat berhasil ditambahkan!")
+            // Show success toast first
+            setToastType("success")
+            setToastMessage("Obat berhasil ditambahkan!")
+            setShowToast(true)
+
+            // Delay close dialog so toast can be seen
+            setTimeout(() => {
+                setOpen(false)
+                if (onAdd) {
+                    onAdd() // Refresh parent data
+                } else if (onSuccess) {
+                    onSuccess()
+                }
+            }, 500) // 500ms delay
 
         } catch (error: unknown) {
             console.error("Error adding obat:", error)
             const errorMessage = error instanceof Error ? error.message : "Terjadi kesalahan saat menambah obat!"
-            alert(errorMessage)
+            setToastType("error")
+            setToastMessage(errorMessage)
+            setShowToast(true)
         } finally {
             setIsLoading(false)
         }

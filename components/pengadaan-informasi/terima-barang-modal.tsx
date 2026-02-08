@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Toast, ToastType } from '@/components/ui/toast';
 
 interface DetailObat {
     id_pp: string;
@@ -30,6 +31,9 @@ export function TerimaBarangModal({ isOpen, onClose, orderId, onSuccess }: Terim
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [tanggalTiba, setTanggalTiba] = useState(new Date().toISOString().split('T')[0]);
+    const [showToast, setShowToast] = useState(false);
+    const [toastType, setToastType] = useState<ToastType>("success");
+    const [toastMessage, setToastMessage] = useState("");
 
     // Fetch detail PO dari database
     useEffect(() => {
@@ -47,7 +51,7 @@ export function TerimaBarangModal({ isOpen, onClose, orderId, onSuccess }: Terim
             const data = await response.json();
             
             // Initialize form dengan data dari PO
-            const initialDetails: DetailObat[] = data.details.map((item: any) => ({
+            const initialDetails = data.details.map((item: any) => ({
                 id_pp: item.id_pp,
                 id_obat: item.id_obat,
                 nama_obat: item.nama_obat,
@@ -59,9 +63,12 @@ export function TerimaBarangModal({ isOpen, onClose, orderId, onSuccess }: Terim
             }));
             
             setDetailObat(initialDetails);
+            setDetailObat(initialDetails);
         } catch (error) {
             console.error('Error fetching PO details:', error);
-            alert('Gagal mengambil detail pesanan');
+            setToastType("error");
+            setToastMessage("Gagal mengambil detail pesanan");
+            setShowToast(true);
         } finally {
             setIsLoading(false);
         }
@@ -85,7 +92,9 @@ export function TerimaBarangModal({ isOpen, onClose, orderId, onSuccess }: Terim
         );
 
         if (!isValid) {
-            alert('Mohon lengkapi semua data obat');
+            setToastType("warning");
+            setToastMessage("Mohon lengkapi semua data obat");
+            setShowToast(true);
             return;
         }
 
@@ -135,10 +144,15 @@ export function TerimaBarangModal({ isOpen, onClose, orderId, onSuccess }: Terim
 
             onSuccess();
             onClose();
+            setToastType("success");
+            setToastMessage("Data barang berhasil diterima!");
+            setShowToast(true);
             
         } catch (error) {
             console.error('Error saving:', error);
-            alert(error instanceof Error ? error.message : 'Gagal menyimpan data');
+            setToastType("error");
+            setToastMessage(error instanceof Error ? error.message : "Gagal menyimpan data");
+            setShowToast(true);
         } finally {
             setIsSaving(false);
         }
@@ -165,7 +179,10 @@ export function TerimaBarangModal({ isOpen, onClose, orderId, onSuccess }: Terim
                     </div>
 
                     {isLoading ? (
-                        <div className="text-center py-8">Memuat data...</div>
+                        <div className="flex flex-col items-center justify-center py-8">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                            <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
+                        </div>
                     ) : (
                         <div className="space-y-6">
                             {detailObat.map((item, index) => (
@@ -180,7 +197,7 @@ export function TerimaBarangModal({ isOpen, onClose, orderId, onSuccess }: Terim
                                             <Input
                                                 value={item.nomor_batch}
                                                 onChange={(e) => handleInputChange(index, 'nomor_batch', e.target.value)}
-                                                placeholder="Contoh: BATCH001"
+                                                placeholder="Masukkan nomor batch"
                                             />
                                         </div>
 
@@ -241,6 +258,15 @@ export function TerimaBarangModal({ isOpen, onClose, orderId, onSuccess }: Terim
                     </Button>
                 </DialogFooter>
             </DialogContent>
+
+            <Toast
+                isOpen={showToast}
+                onClose={() => setShowToast(false)}
+                type={toastType}
+                title={toastType === "success" ? "Berhasil!" : toastType === "error" ? "Gagal!" : "Peringatan"}
+            >
+                <p>{toastMessage}</p>
+            </Toast>
         </Dialog>
     );
 }

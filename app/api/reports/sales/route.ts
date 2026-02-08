@@ -81,12 +81,6 @@ export async function GET(request: NextRequest) {
             }, { status: 500 });
         }
 
-        console.log("Fetched sales data:", sales?.length || 0, "records");
-        console.log("Sample sales record:", sales?.[0]);
-        if (sales?.[0]?.detail_penjualan) {
-            console.log("Sample detail_penjualan:", sales[0].detail_penjualan);
-        }
-
         // Get total count for pagination
         let countQuery = supabase
             .from("penjualan")
@@ -177,8 +171,6 @@ export async function POST(request: NextRequest) {
         const stockValidationErrors = [];
 
         for (const item of Array.from(consolidatedItems.values())) {
-            console.log(`Validating batch: ${item.nomor_batch} for product: ${item.id_obat}`);
-
             const { data: batchExists, error: batchError } = await supabase
                 .from("detail_obat")
                 .select("nomor_batch, stok_sekarang, id_obat")
@@ -198,13 +190,10 @@ export async function POST(request: NextRequest) {
                     .gt("stok_sekarang", 0)
                     .order("tanggal_expired", { ascending: true });
 
-                console.log(`Available batches for product ${item.id_obat}:`, availableBatches);
-
                 // Try to find any available batch for this product with sufficient stock
                 if (availableBatches && availableBatches.length > 0) {
                     const availableBatch = availableBatches.find(b => b.stok_sekarang >= item.jumlah_terjual);
                     if (availableBatch) {
-                        console.log(`Using alternative batch: ${availableBatch.nomor_batch}`);
                         item.nomor_batch = availableBatch.nomor_batch;
                         validatedItems.push(item);
                         continue;

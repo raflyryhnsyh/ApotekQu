@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Trash2, AlertTriangle, Loader2 } from "lucide-react"
 import { PengelolaanObat } from "./data-table"
+import { Toast, ToastType } from "@/components/ui/toast"
 
 interface DataDeleteProps {
     data?: {
@@ -29,6 +30,9 @@ interface DataDeleteProps {
 export function DataDelete({ data, obat, onDelete, onSuccess, open: externalOpen, onOpenChange: externalOnOpenChange }: DataDeleteProps) {
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [showToast, setShowToast] = useState(false)
+    const [toastType, setToastType] = useState<ToastType>("success")
+    const [toastMessage, setToastMessage] = useState("")
     
     // Support both data formats
     const noBatch = data?.nomor_batch || obat?.noBatch || ""
@@ -46,15 +50,27 @@ export function DataDelete({ data, obat, onDelete, onSuccess, open: externalOpen
                     method: 'DELETE'
                 })
                 if (!response.ok) throw new Error('Failed to delete')
-                await onSuccess()
+                if (onSuccess) {
+                    await onSuccess()
+                }
             }
-            setOpen(false)
-            if (externalOnOpenChange) {
-                externalOnOpenChange(false)
-            }
+            
+            // Show success toast first
+            setToastType("success")
+            setToastMessage("Obat berhasil dihapus!")
+            setShowToast(true)
+            
+            // Delay close dialog so toast can be seen
+            setTimeout(() => {
+                const handleClose = externalOnOpenChange || setOpen;
+                handleClose(false);
+            }, 500); // 500ms delay
+
         } catch (error) {
             console.error("Error deleting obat:", error)
-            alert("Terjadi kesalahan saat menghapus obat!")
+            setToastType("error")
+            setToastMessage("Terjadi kesalahan saat menghapus obat!")
+            setShowToast(true)
         } finally {
             setIsLoading(false)
         }

@@ -15,6 +15,7 @@ import { CompleteDetailModal } from "./complete-detail-modal";
 import { DataAdd } from "./data-add";
 import { DataEdit } from "./data-edit";
 import { DataDelete } from "./data-delete";
+import { Toast, ToastType } from "@/components/ui/toast";
 
 type DetailObat = {
     nomor_batch: string;
@@ -35,6 +36,9 @@ export function PengelolaanObatNew() {
     const [incompleteCount, setIncompleteCount] = React.useState(0);
     const [expiredPage, setExpiredPage] = React.useState(1);
     const [activePage, setActivePage] = React.useState(1);
+    const [showToast, setShowToast] = React.useState(false);
+    const [toastType, setToastType] = React.useState<ToastType>("success");
+    const [toastMessage, setToastMessage] = React.useState("");
     
     const EXPIRED_PER_PAGE = 3;
     const ACTIVE_PER_PAGE = 10;
@@ -59,11 +63,33 @@ export function PengelolaanObatNew() {
             setLoading(true);
             setError(null);
             
-            const response = await fetch('/api/detail-obat');
+            // Add timestamp to prevent caching
+            const timestamp = new Date().getTime();
+            const response = await fetch(`/api/kelola-obat?_t=${timestamp}`, {
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
+            });
             if (!response.ok) throw new Error('Gagal memuat data');
             
             const result = await response.json();
-            setData(result.data || []);
+            
+            // Transform kelola-obat response to match expected format
+            const transformedData = (result.data || []).map((item: any) => ({
+                nomor_batch: item.noBatch,
+                id_obat: item.id_obat,
+                nama_obat: item.nama,
+                stok_sekarang: item.totalStok,
+                satuan: item.satuan,
+                harga_jual: item.harga_jual,
+                kadaluarsa: item.tanggalExpired,
+                nama_supplier: item.supplier
+            }));
+            
+            setData(transformedData);
         } catch (err) {
             console.error('Error fetching data:', err);
             setError('Gagal memuat data obat');
@@ -131,10 +157,33 @@ export function PengelolaanObatNew() {
         }).format(amount);
     };
 
+    // Success handlers
+    const handleAddSuccess = async () => {
+        await fetchData();
+        setToastType("success");
+        setToastMessage("Obat berhasil ditambahkan!");
+        setShowToast(true);
+    };
+
+    const handleEditSuccess = async () => {
+        await fetchData();
+        setToastType("success");
+        setToastMessage("Obat berhasil diupdate!");
+        setShowToast(true);
+    };
+
+    const handleDeleteSuccess = async () => {
+        await fetchData();
+        setToastType("success");
+        setToastMessage("Obat berhasil dihapus!");
+        setShowToast(true);
+    };
+
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+            <div className="flex flex-col items-center justify-center min-h-[400px]">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <p className="mt-2 text-sm text-gray-600">Memuat data...</p>
             </div>
         );
     }
@@ -198,8 +247,8 @@ export function PengelolaanObatNew() {
                                 {showActions && (
                                     <TableCell>
                                         <div className="flex items-center justify-center gap-2">
-                                            <DataEdit data={obat} onSuccess={fetchData} />
-                                            <DataDelete data={obat} onSuccess={fetchData} />
+                                            <DataEdit data={obat} onSuccess={handleEditSuccess} />
+                                            <DataDelete data={obat} onSuccess={handleDeleteSuccess} />
                                         </div>
                                     </TableCell>
                                 )}
@@ -223,7 +272,7 @@ export function PengelolaanObatNew() {
                         >
                             Obat Perlu Dilengkapi
                         </button>
-                        <DataAdd onSuccess={fetchData} />
+                        <DataAdd onSuccess={handleAddSuccess} />
                     </div>
                 </div>
 
@@ -332,6 +381,16 @@ export function PengelolaanObatNew() {
                     await checkIncompleteItems(); // Re-check for any remaining incomplete items
                 }}
             />
+
+            {/* Toast Notification */}
+            <Toast
+                isOpen={showToast}
+                onClose={() => setShowToast(false)}
+                type={toastType}
+                title={toastType === "success" ? "Berhasil!" : "Gagal!"}
+            >
+                <p>{toastMessage}</p>
+            </Toast>
         </>
     );
 }

@@ -63,6 +63,7 @@ export async function getKelolaObatData(params?: {
             headers: {
                 'Content-Type': 'application/json',
             },
+            cache: 'no-store',
         });
 
         if (!response.ok) {

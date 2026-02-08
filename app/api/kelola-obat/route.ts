@@ -76,9 +76,27 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Format response data
-        const formattedData: KelolaObatResponse[] = detailObatData
-            .filter(detail => detail.obat) // Pastikan ada data obat
+        // Format response data and filter out soft-deleted items (stok_sekarang <= 0)
+        const filteredItems: any[] = [];
+        const softDeletedItems: any[] = [];
+        
+        detailObatData.forEach(detail => {
+            const stok = (detail.stok_sekarang as number) || 0;
+            const hasObat = !!detail.obat;
+            const isActive = stok > 0;
+            
+            if (!hasObat || !isActive) {
+                softDeletedItems.push({
+                    batch: detail.nomor_batch,
+                    stock: stok,
+                    hasObat
+                });
+            } else {
+                filteredItems.push(detail);
+            }
+        });
+        
+        const formattedData: KelolaObatResponse[] = filteredItems
             .map((detail: Record<string, unknown>) => {
                 const obat = detail.obat as Record<string, unknown>;
                 // Ambil supplier pertama jika ada multiple supplier
@@ -118,20 +136,33 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // Get total count for pagination
-        const { count: totalCount } = await supabase
+        // Get total count for pagination (only active items with stock > 0)
+        const { count: totalCount, error: countError } = await supabase
             .from('detail_obat')
             .select('*', { count: 'exact', head: true });
 
-        const totalPages = Math.ceil((totalCount || 0) / limit);
+        if (countError) {
+            console.error('Error counting:', countError);
+        }
+
+        // Count only active items in the filtered data
+        const activeTotalCount = filteredData.length;
+
+        const totalPages = Math.ceil(activeTotalCount / limit);
 
         return NextResponse.json({
             success: true,
             data: filteredData,
-            total: totalCount || 0,
+            total: activeTotalCount,
             page,
             limit,
             totalPages
+        }, {
+            headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+            }
         });
 
     } catch (error) {
@@ -157,7 +188,9 @@ export async function POST(request: NextRequest) {
             stok_sekarang,
             satuan,
             harga_jual,
-            supplier_id
+            supplier_id,
+            id_barang_diterima,
+            id_pp
         } = body;
 
         // Validation
@@ -256,6 +289,24 @@ export async function POST(request: NextRequest) {
                 { error: 'Gagal membuat detail obat', details: detailError.message },
                 { status: 500 }
             );
+        }
+
+        // If this is completing an incomplete medicine, create the link in detail_barang_diterima
+        if (id_barang_diterima) {
+            const { error: linkError } = await supabase
+                .from('detail_barang_diterima')
+                .insert({
+                    id_diterima: id_barang_diterima,
+                    id_obat: obatId,
+                    nomor_batch,
+                    jumlah_diterima: parseInt(stok_sekarang) || 0
+                });
+
+            if (linkError) {
+                console.error('Error creating detail_barang_diterima link:', linkError);
+                // Don't fail the whole request, just log the error
+                // The detail_obat was created successfully
+            }
         }
 
         return NextResponse.json({

@@ -118,18 +118,18 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center px-4">
-            <div className="my-7 w-full flex items-center justify-center overflow-hidden">
+        <div className="fixed inset-0 flex flex-col items-center justify-center px-4 bg-background overflow-hidden">
+            <div className="mb-8 w-full flex items-center justify-center">
                 <Image
                     src="/picture-login.png"
                     alt="Login"
-                    width={480}
-                    height={192}
-                    className="w-full max-w-[480px] h-32 sm:h-40 md:h-48 lg:h-56 rounded-lg object-cover"
+                    width={500}
+                    height={200}
+                    className="w-full max-w-[500px] h-auto rounded-lg object-contain"
                     priority
                 />
             </div>
-            <div className="max-w-sm w-full flex flex-col items-center">
+            <div className="max-w-md w-full flex flex-col items-center">
                 <p className="text-xl font-bold mb-4 text-center">Selamat Datang di ApotekQu</p>
 
                 {/* Error Message */}
